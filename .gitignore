@@ -1,3 +1,6 @@
 .devcontainer/
 .vscode/
+repos/
+corpus/
+*.json
 __pycache__/

@@ -12,7 +12,7 @@ class SlidingWindowChunk:
     def name(self) -> str:
         return "SlidingWindow"
 
-    def chunkify(self, code: str) -> List[str]:
+    def chunkify(self, code: str, **kwargs) -> List[str]:
         """
         Split code text into overlapping chunks.
         
