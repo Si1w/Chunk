@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+from astchunk import ASTChunkBuilder
 from git import Repo
 from pathlib import Path
 from datasets import load_dataset
@@ -79,7 +80,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
     else:
         methods_to_process = [chunking_method]
     
@@ -94,10 +95,14 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             chunker = FunctionLevelChunk(**configs)
         elif method == "hierarchical":
             chunker = HierarchicalChunk(**configs)
+        elif method == "cAST":
+            chunker = ASTChunkBuilder(**configs)
         else:
             raise ValueError(f"Unknown chunking method: {method}")
         
         for instance in tqdm(dataset, desc=f"Processing with {method}"):
+            if instance["repo"] == "pvlib/pvlib-python":
+                continue
             repo = instance["repo"]
             base_commit = instance["base_commit"]
             instance_id = instance["instance_id"]
@@ -106,6 +111,8 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             if not repo_dir.exists():
                 logger.warning(f"Repository {repo} not found at {repo_dir}")
                 continue
+
+            chunker_name = chunker.name if hasattr(chunker, 'name') else "cAST"
             
             try:
                 logger.info(f"Processing {instance_id} at {base_commit[:8]}")
@@ -117,11 +124,11 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
                     "instance_id": instance_id,
                     "repo": repo,
                     "base_commit": base_commit,
-                    "chunking_method": chunker.name,
+                    "chunking_method": chunker_name,
                     "documents": documents
                 }
-                
-                output_path = os.path.join(instance_folder, f"corpus_{chunker.name}.json")
+
+                output_path = os.path.join(instance_folder, f"corpus_{method}.json")
                 with open(output_path, 'w', encoding='utf-8') as f:
                     json.dump(corpus, f, indent=2, ensure_ascii=False)
                 
@@ -139,8 +146,8 @@ def main():
     parser.add_argument("--split", type=str, default="dev", choices=["dev", "test"])
     parser.add_argument("--repos_dir", type=str, default="./eval/swebench/repos")
     parser.add_argument("--output_dir", type=str, default="./eval/swebench/corpus")
-    parser.add_argument("--method", type=str, required=True, choices=["sliding", "function", "hierarchical", "all"])
-    parser.add_argument("--max_chunk_size", type=int, default=1000)
+    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "all"])
+    parser.add_argument("--max_chunk_size", type=int, default=500)
     parser.add_argument("--language", type=str, default="python")
     parser.add_argument("--metadata_template", type=str, default="default")
     parser.add_argument("--chunk-expansion", action="store_true")
