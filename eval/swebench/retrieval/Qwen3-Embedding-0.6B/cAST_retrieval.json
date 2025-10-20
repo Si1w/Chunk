@@ -1,0 +1,2043 @@
+{
+  "sqlfluff__sqlfluff-1625": {
+    "query": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present\n## Expected Behaviour\r\n\r\nBoth of these queries should pass, the only difference is the addition of a table alias 'a':\r\n\r\n1/ no alias\r\n\r\n```\r\nSELECT [hello]\r\nFROM\r\n    mytable\r\n```\r\n\r\n2/ same query with alias\r\n\r\n```\r\nSELECT a.[hello]\r\nFROM\r\n    mytable AS a\r\n```\r\n\r\n## Observed Behaviour\r\n\r\n1/ passes\r\n2/ fails with: L031: Avoid using aliases in join condition.\r\n\r\nBut there is no join condition :-)\r\n\r\n## Steps to Reproduce\r\n\r\nLint queries above\r\n\r\n## Dialect\r\n\r\nTSQL\r\n\r\n## Version\r\n\r\nsqlfluff 0.6.9\r\nPython 3.6.9\r\n\r\n## Configuration\r\n\r\nN/A\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.714518129825592,
+        "content": "@document_fix_compatible\nclass Rule_L031(BaseRule):\n    \"\"\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    \"\"\"\n\n    def _eval(self, segment, **kwargs):\n        \"\"\"Identify aliases in from clause and join conditions.\n\n        Find base table, table expressions in join, and other expressions in select clause\n        and decide if it's needed to report them.\n        \"\"\"\n        if segment.is_type(\"select_statement\"):\n            # A buffer for all table expressions in join conditions",
+        "file_path": "src/sqlfluff/rules/L031.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L031.py",
+          "chunk_size": 326,
+          "line_count": 46,
+          "start_line_no": 10,
+          "end_line_no": 55,
+          "node_count": 16
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6691537499427795,
+        "content": "@document_fix_compatible\nclass Rule_L025(Rule_L020):\n    \"\"\"Tables should not be aliased if that alias is not used.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        SELECT\n            a\n        FROM foo AS zoo\n\n    | **Best practice**\n    | Use the alias or remove it. An unused alias makes code\n    | harder to read without changing any functionality.\n\n    .. code-block:: sql\n\n        SELECT\n            zoo.a\n        FROM foo AS zoo\n\n        -- Alternatively...\n\n        SELECT\n            a\n        FROM foo\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L025.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L025.py",
+          "chunk_size": 333,
+          "line_count": 29,
+          "start_line_no": 8,
+          "end_line_no": 36,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.661738395690918,
+        "content": "@document_configuration\nclass Rule_L013(BaseRule):\n    \"\"\"Column expression without alias. Use explicit `AS` clause.\n\n    | **Anti-pattern**\n    | In this example, there is no alias for both sums.\n\n    .. code-block:: sql\n\n        SELECT\n            sum(a),\n            sum(b)\n        FROM foo\n\n    | **Best practice**\n    | Add aliases.\n\n    .. code-block:: sql\n\n        SELECT\n            sum(a) AS a_sum,\n            sum(b) AS b_sum\n        FROM foo\n\n    \"\"\"\n\n    config_keywords = [\"allow_scalar\"]\n\n    def _eval(self, segment, parent_stack, **kwargs):",
+        "file_path": "src/sqlfluff/rules/L013.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L013.py",
+          "chunk_size": 369,
+          "line_count": 29,
+          "start_line_no": 6,
+          "end_line_no": 34,
+          "node_count": 11
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6567642092704773,
+        "content": "@document_fix_compatible\nclass Rule_L011(BaseRule):\n    \"\"\"Implicit/explicit aliasing of table.\n\n    Aliasing of table to follow preference\n    (explicit using an `AS` clause is default).\n\n    | **Anti-pattern**\n    | In this example, the alias 'voo' is implicit.\n\n    .. code-block:: sql\n\n        SELECT\n            voo.a\n        FROM foo voo\n\n    | **Best practice**\n    | Add `AS` to make it explicit.\n\n    .. code-block:: sql\n\n        SELECT\n            voo.a\n        FROM foo AS voo\n\n    \"\"\"\n\n    config_keywords = [\"aliasing\"]\n\n    _target_elems = (\"from_expression_element\",)",
+        "file_path": "src/sqlfluff/rules/L011.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L011.py",
+          "chunk_size": 404,
+          "line_count": 30,
+          "start_line_no": 8,
+          "end_line_no": 37,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6540636420249939,
+        "content": "class Rule_L012(Rule_L011):\n    \"\"\"Implicit/explicit aliasing of columns.\n\n    Aliasing of columns to follow preference\n    (explicit using an `AS` clause is default).\n\n    NB: This rule inherits its functionality from obj:`Rule_L011` but is\n    separate so that they can be enabled and disabled separately.\n\n    | **Anti-pattern**\n    | In this example, the alias for column 'a' is implicit.\n\n    .. code-block:: sql\n\n        SELECT\n            a\n        FROM foo\n\n    | **Best practice**\n    | Add `AS` to make it explicit.\n\n    .. code-block:: sql\n\n        SELECT\n            a AS alias_col\n        FROM foo\n\n    \"\"\"\n\n    config_keywords = [\"aliasing\"]\n\n    _target_elems = (\"select_clause_element\",)",
+        "file_path": "src/sqlfluff/rules/L012.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L012.py",
+          "chunk_size": 496,
+          "line_count": 32,
+          "start_line_no": 5,
+          "end_line_no": 36,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6260883808135986,
+        "content": "class Rule_L042(BaseRule):\n    \"\"\"Join/From clauses should not contain subqueries. Use CTEs instead.\n\n    By default this rule is configured to allow subqueries within `FROM`\n    clauses but not within `JOIN` clauses. If you prefer a stricter lint\n    then this is configurable.\n\n    NB: Some dialects don't allow CTEs, and for those dialects\n    this rule makes no sense and should be disabled.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        select\n            a.x, a.y, b.z\n        from a\n        join (\n            select x, z from b\n        ) using(x)\n\n\n    | **Best practice**\n\n    .. code-block:: sql\n\n        with c as (\n            select x, z from b\n        )\n        select\n            a.x, a.y, c.z\n        from a\n        join c using(x)\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L042.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L042.py",
+          "chunk_size": 492,
+          "line_count": 35,
+          "start_line_no": 7,
+          "end_line_no": 41,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6170490980148315,
+        "content": "class Rule_L032(BaseRule):\n    \"\"\"Prefer specifying join keys instead of using \"USING\".\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        SELECT\n            table_a.field_1,\n            table_b.field_2\n        FROM\n            table_a\n        INNER JOIN table_b USING (id)\n\n    | **Best practice**\n    |  Specify the keys directly\n\n    .. code-block:: sql\n\n        SELECT\n            table_a.field_1,\n            table_b.field_2\n        FROM\n            table_a\n        INNER JOIN table_b\n            ON table_a.id = table_b.id\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L032.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L032.py",
+          "chunk_size": 328,
+          "line_count": 28,
+          "start_line_no": 5,
+          "end_line_no": 32,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.6121292114257812,
+        "content": "    \"\"\"Table aliases should be unique within each clause.\n\n    | **Anti-pattern**\n    | In this example, the alias 't' is reused for two different ables:\n\n    .. code-block:: sql\n\n        SELECT\n            t.a,\n            t.b\n        FROM foo AS t, bar AS t\n\n        -- this can also happen when using schemas where the implicit alias is the table name:\n\n        SELECT\n            a,\n            b\n        FROM\n            2020.foo,\n            2021.foo\n\n    | **Best practice**\n    | Make all tables have a unique alias\n\n    .. code-block:: sql\n\n        SELECT\n            f.a,\n            b.b\n        FROM foo AS f, bar AS b\n\n        -- Also use explicit alias's when referencing two tables with same name from two different schemas\n\n        SELECT\n            f1.a,\n            f2.b\n        FROM\n            2020.foo AS f1,\n            2021.foo AS f2\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L020.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L020.py",
+          "chunk_size": 490,
+          "line_count": 41,
+          "start_line_no": 9,
+          "end_line_no": 49,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.6053478717803955,
+        "content": "\"\"\"Implementation of Rule L026.\"\"\"\n\nfrom sqlfluff.core.rules.analysis.select import get_aliases_from_select\nfrom sqlfluff.core.rules.base import LintResult\nfrom sqlfluff.core.rules.doc_decorators import document_configuration\nfrom sqlfluff.rules.L025 import Rule_L020",
+        "file_path": "src/sqlfluff/rules/L026.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L026.py",
+          "chunk_size": 247,
+          "line_count": 6,
+          "start_line_no": 0,
+          "end_line_no": 5,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5996904373168945,
+        "content": "    def _eval(self, segment, **kwargs):\n        \"\"\"Look for USING in a join clause.\"\"\"\n        if segment.is_type(\"join_clause\"):\n            for seg in segment.segments:\n                if seg.is_type(\"keyword\") and seg.name == \"using\":\n                    return [\n                        LintResult(\n                            # Reference the element, not the string.\n                            anchor=seg,\n                            description=(\n                                \"Found USING statement. Expected only ON statements.\"\n                            ),\n                        )\n                    ]\n        return None",
+        "file_path": "src/sqlfluff/rules/L032.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L032.py",
+          "chunk_size": 304,
+          "line_count": 15,
+          "start_line_no": 34,
+          "end_line_no": 48,
+          "node_count": 1
+        }
+      }
+    ]
+  },
+  "sqlfluff__sqlfluff-2419": {
+    "query": "Rule L060 could give a specific error message\nAt the moment rule L060 flags something like this:\r\n\r\n```\r\nL:  21 | P:   9 | L060 | Use 'COALESCE' instead of 'IFNULL' or 'NVL'.\r\n```\r\n\r\nSince we likely know the wrong word, it might be nice to actually flag that instead of both `IFNULL` and `NVL` - like most of the other rules do.\r\n\r\nThat is it should flag this:\r\n\r\n```\r\nL:  21 | P:   9 | L060 | Use 'COALESCE' instead of 'IFNULL'.\r\n```\r\n Or this:\r\n\r\n```\r\nL:  21 | P:   9 | L060 | Use 'COALESCE' instead of 'NVL'.\r\n```\r\n\r\nAs appropriate.\r\n\r\nWhat do you think @jpy-git ?\r\n\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.7141960263252258,
+        "content": "        \"\"\"Use ``COALESCE`` instead of ``IFNULL`` or ``NVL``.\"\"\"\n        # We only care about function names.\n        if context.segment.name != \"function_name_identifier\":\n            return None\n\n        # Only care if the function is ``IFNULL`` or ``NVL``.\n        if context.segment.raw_upper not in {\"IFNULL\", \"NVL\"}:\n            return None\n\n        # Create fix to replace ``IFNULL`` or ``NVL`` with ``COALESCE``.\n        fix = LintFix.replace(\n            context.segment,\n            [\n                CodeSegment(\n                    raw=\"COALESCE\",\n                    name=\"function_name_identifier\",\n                    type=\"function_name_identifier\",\n                )\n            ],\n        )\n\n        return LintResult(context.segment, [fix])",
+        "file_path": "src/sqlfluff/rules/L060.py",
+        "chunk_index": 4,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L060.py",
+          "chunk_size": 470,
+          "line_count": 22,
+          "start_line_no": 40,
+          "end_line_no": 61,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6598317623138428,
+        "content": "    \"\"\"Use ``COALESCE`` instead of ``IFNULL`` or ``NVL``.\n\n    | **Anti-pattern**\n    | ``IFNULL`` or ``NVL`` are used to fill ``NULL`` values.\n\n    .. code-block:: sql\n\n        SELECT ifnull(foo, 0) AS bar,\n        FROM baz;\n\n        SELECT nvl(foo, 0) AS bar,\n        FROM baz;\n\n    | **Best practice**\n    | Use ``COALESCE`` instead.\n    | ``COALESCE`` is universally supported,\n    | whereas Redshift doesn't support ``IFNULL``\n    | and BigQuery doesn't support ``NVL``.\n    | Additionally ``COALESCE`` is more flexible\n    | and accepts an arbitrary number of arguments.\n\n    .. code-block:: sql\n\n        SELECT coalesce(foo, 0) AS bar,\n        FROM baz;\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L060.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L060.py",
+          "chunk_size": 477,
+          "line_count": 27,
+          "start_line_no": 11,
+          "end_line_no": 37,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6021425724029541,
+        "content": "@document_fix_compatible\nclass Rule_L049(Rule_L006):\n    \"\"\"Comparisons with NULL should use \"IS\" or \"IS NOT\".\n\n    | **Anti-pattern**\n    | In this example, the ``=`` operator is used to check for ``NULL`` values.\n\n    .. code-block:: sql\n\n        SELECT\n            a\n        FROM foo\n        WHERE a = NULL\n\n\n    | **Best practice**\n    | Use ``IS`` or ``IS NOT`` to check for ``NULL`` values.\n\n    .. code-block:: sql\n\n        SELECT\n            a\n        FROM foo\n        WHERE a IS NULL\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L049.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L049.py",
+          "chunk_size": 325,
+          "line_count": 25,
+          "start_line_no": 9,
+          "end_line_no": 33,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.5821542739868164,
+        "content": "@document_fix_compatible\nclass Rule_L035(BaseRule):\n    \"\"\"Do not specify ``else null`` in a case when statement (redundant).\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        select\n            case\n                when name like '%cat%' then 'meow'\n                when name like '%dog%' then 'woof'\n                else null\n            end\n        from x\n\n    | **Best practice**\n    |  Omit ``else null``\n\n    .. code-block:: sql\n\n        select\n            case\n                when name like '%cat%' then 'meow'\n                when name like '%dog%' then 'woof'\n            end\n        from x\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L035.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L035.py",
+          "chunk_size": 356,
+          "line_count": 28,
+          "start_line_no": 8,
+          "end_line_no": 35,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.5545030832290649,
+        "content": "        \"\"\"Generate list of fixes to convert CASE statement to COALESCE function.\"\"\"\n        # Add coalesce and opening parenthesis.\n        edits = [\n            KeywordSegment(\"coalesce\"),\n            SymbolSegment(\"(\", name=\"start_bracket\", type=\"start_bracket\"),\n            coalesce_arg_1,\n            SymbolSegment(\",\", name=\"comma\", type=\"comma\"),\n            WhitespaceSegment(),\n            coalesce_arg_2,\n            SymbolSegment(\")\", name=\"end_bracket\", type=\"end_bracket\"),\n        ]\n\n        if preceding_not:\n            not_edits: List[BaseSegment] = [\n                KeywordSegment(\"not\"),\n                WhitespaceSegment(),\n            ]\n            edits = not_edits + edits",
+        "file_path": "src/sqlfluff/rules/L043.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L043.py",
+          "chunk_size": 457,
+          "line_count": 18,
+          "start_line_no": 83,
+          "end_line_no": 100,
+          "node_count": 4
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.5544532537460327,
+        "content": "@document_configuration\n@document_fix_compatible\nclass Rule_L040(Rule_L010):\n    \"\"\"Inconsistent capitalisation of boolean/null literal.\n\n    The functionality for this rule is inherited from :obj:`Rule_L010`.\n\n    | **Anti-pattern**\n    | In this example, 'null' and 'false' are in lower-case whereas 'TRUE' is in\n    | upper-case.\n\n    .. code-block:: sql\n\n        select\n            a,\n            null,\n            TRUE,\n            false\n        from foo\n\n    | **Best practice**\n    | Ensure all literal null/true/false literals cases are used consistently\n\n    .. code-block:: sql\n\n        select\n            a,\n            NULL,\n            TRUE,\n            FALSE\n        from foo\n\n        -- Also good\n\n        select\n            a,\n            null,\n            true,\n            false\n        from foo\n\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L040.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L040.py",
+          "chunk_size": 493,
+          "line_count": 42,
+          "start_line_no": 11,
+          "end_line_no": 52,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.552098274230957,
+        "content": "                    if coalesce_arg_2.raw_upper == \"NULL\":\n                        # Can just specify the column on it's own\n                        # rather than using a COALESCE function.\n                        return LintResult(\n                            anchor=condition_expression,\n                            fixes=self._column_only_fix_list(\n                                context,\n                                column_reference_segment,\n                            ),\n                            description=\"Unnecessary CASE statement. \"\n                            f\"Just use column '{column_reference_segment.raw}'.\",\n                        )\n\n                    return LintResult(\n                        anchor=condition_expression,\n                        fixes=self._coalesce_fix_list(\n                            context,\n                            coalesce_arg_1,\n                            coalesce_arg_2,\n                        ),\n                        description=\"Unnecessary CASE statement. \"\n                        \"Use COALESCE function instead.\",\n                    )",
+        "file_path": "src/sqlfluff/rules/L043.py",
+        "chunk_index": 11,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L043.py",
+          "chunk_size": 490,
+          "line_count": 23,
+          "start_line_no": 217,
+          "end_line_no": 239,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5511467456817627,
+        "content": "    def _eval(self, context: RuleContext) -> LintResult:\n        \"\"\"Relational operators should not be used to check for NULL values.\"\"\"\n        # Context/motivation for this rule:\n        # https://news.ycombinator.com/item?id=28772289\n        # https://stackoverflow.com/questions/9581745/sql-is-null-and-null\n        if len(context.segment.segments) <= 2:\n            return LintResult()\n\n        # Allow assignments in SET clauses\n        if context.parent_stack and context.parent_stack[-1].is_type(\n            \"set_clause_list\", \"execute_script_statement\"\n        ):\n            return LintResult()\n\n        # Allow assignments in EXEC clauses",
+        "file_path": "src/sqlfluff/rules/L049.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L049.py",
+          "chunk_size": 484,
+          "line_count": 15,
+          "start_line_no": 35,
+          "end_line_no": 49,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5504946112632751,
+        "content": "@document_fix_compatible\nclass Rule_L043(BaseRule):\n    \"\"\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    \"\"\"\n\n    @staticmethod\n    def _coalesce_fix_list(\n        context: RuleContext,\n        coalesce_arg_1: BaseSegment,\n        coalesce_arg_2: BaseSegment,\n        preceding_not: bool = False,\n    ) -> List[LintFix]:",
+        "file_path": "src/sqlfluff/rules/L043.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L043.py",
+          "chunk_size": 206,
+          "line_count": 68,
+          "start_line_no": 15,
+          "end_line_no": 82,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5445775985717773,
+        "content": "@document_fix_compatible\nclass Rule_L060(BaseRule):",
+        "file_path": "src/sqlfluff/rules/L060.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L060.py",
+          "chunk_size": 49,
+          "line_count": 2,
+          "start_line_no": 9,
+          "end_line_no": 10,
+          "node_count": 5
+        }
+      }
+    ]
+  },
+  "sqlfluff__sqlfluff-1733": {
+    "query": "Extra space when first field moved to new line in a WITH statement\nNote, the query below uses a `WITH` statement. If I just try to fix the SQL within the CTE, this works fine.\r\n\r\nGiven the following SQL:\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Expected Behaviour\r\n\r\nafter running `sqlfluff fix` I'd expect (`my_id` gets moved down and indented properly):\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT\r\n        my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Observed Behaviour\r\n\r\nafter running `sqlfluff fix` we get (notice that `my_id` is indented one extra space)\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT\r\n         my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Steps to Reproduce\r\n\r\nNoted above. Create a file with the initial SQL and fun `sqfluff fix` on it.\r\n\r\n## Dialect\r\n\r\nRunning with default config.\r\n\r\n## Version\r\nInclude the output of `sqlfluff --version` along with your Python version\r\n\r\nsqlfluff, version 0.7.0\r\nPython 3.7.5\r\n\r\n## Configuration\r\n\r\nDefault config.\r\n\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.7050999402999878,
+        "content": "    \"\"\"Incorrect indentation type.\n\n    Note 1: spaces are only fixed to tabs if the number of spaces in the\n    indent is an integer multiple of the tab_space_size config.\n    Note 2: fixes are only applied to indents at the start of a line. Indents\n    after other text on the same line are not fixed.\n\n    | **Anti-pattern**\n    | Using tabs instead of spaces when indent_unit config set to spaces (default).\n\n    .. code-block:: sql\n       :force:\n\n        select\n        ••••a,\n        →   b\n        from foo\n\n    | **Best practice**\n    | Change the line to use spaces only.\n\n    .. code-block:: sql\n       :force:\n\n        select\n        ••••a,\n        ••••b\n        from foo\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L004.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L004.py",
+          "chunk_size": 458,
+          "line_count": 29,
+          "start_line_no": 12,
+          "end_line_no": 40,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6663240790367126,
+        "content": "    \"\"\"Indentation not consistent with previous lines.\n\n    Note:\n        This rule used to be _\"Indentation length is not a multiple\n        of `tab_space_size`\"_, but was changed to be much smarter.\n\n    | **Anti-pattern**\n    | The • character represents a space.\n    | In this example, the third line contains five spaces instead of four.\n\n    .. code-block:: sql\n       :force:\n\n        SELECT\n        ••••a,\n        •••••b\n        FROM foo\n\n\n    | **Best practice**\n    | Change the indentation to use a multiple of four spaces.\n\n    .. code-block:: sql\n       :force:\n\n        SELECT\n        ••••a,\n        ••••b\n        FROM foo\n\n    \"\"\"\n\n    _works_on_unparsable = False",
+        "file_path": "src/sqlfluff/rules/L003.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L003.py",
+          "chunk_size": 447,
+          "line_count": 33,
+          "start_line_no": 16,
+          "end_line_no": 48,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6663088798522949,
+        "content": "@document_fix_compatible\nclass Rule_L018(BaseRule):\n    \"\"\"WITH clause closing bracket should be aligned with WITH keyword.\n\n    | **Anti-pattern**\n    | The • character represents a space.\n    | In this example, the closing bracket is not aligned with WITH keyword.\n\n    .. code-block:: sql\n       :force:\n\n        WITH zoo AS (\n            SELECT a FROM foo\n        ••••)\n\n        SELECT * FROM zoo\n\n    | **Best practice**\n    | Remove the spaces to align the WITH keyword with the closing bracket.\n\n    .. code-block:: sql\n\n        WITH zoo AS (\n            SELECT a FROM foo\n        )\n\n        SELECT * FROM zoo\n\n    \"\"\"\n\n    _works_on_unparsable = False\n    config_keywords = [\"tab_space_size\"]",
+        "file_path": "src/sqlfluff/rules/L018.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L018.py",
+          "chunk_size": 477,
+          "line_count": 32,
+          "start_line_no": 8,
+          "end_line_no": 39,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6375527381896973,
+        "content": "@document_fix_compatible\nclass Rule_L001(BaseRule):\n    \"\"\"Unnecessary trailing whitespace.\n\n    | **Anti-pattern**\n    | The • character represents a space.\n\n    .. code-block:: sql\n       :force:\n\n        SELECT\n            a\n        FROM foo••\n\n    | **Best practice**\n    | Remove trailing spaces.\n\n    .. code-block:: sql\n\n        SELECT\n            a\n        FROM foo\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L001.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L001.py",
+          "chunk_size": 243,
+          "line_count": 23,
+          "start_line_no": 5,
+          "end_line_no": 27,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6263037919998169,
+        "content": "\"\"\"This is an example of how to use the simple sqlfluff api.\"\"\"\n\nimport sqlfluff\n\n#  -------- LINTING ----------\n\nmy_bad_query = \"SeLEct  *, 1, blah as  fOO  from myTable\"\n\n# Lint the given string and get a list of violations found.\nresult = sqlfluff.lint(my_bad_query, dialect=\"bigquery\")\n\n# result =\n# [\n#     {\"code\": \"L010\", \"line_no\": 1, \"line_pos\": 1, \"description\": \"Keywords must be consistently upper case.\"}\n#     ...\n# ]\n\n#  -------- FIXING ----------\n\n# Fix the given string and get a string back which has been fixed.\nresult = sqlfluff.fix(my_bad_query, dialect=\"bigquery\")",
+        "file_path": "examples/01_basic_api_usage.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "examples/01_basic_api_usage.py",
+          "chunk_size": 478,
+          "line_count": 21,
+          "start_line_no": 0,
+          "end_line_no": 20,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6249718070030212,
+        "content": "    config_keywords = [\"indent_unit\", \"tab_space_size\"]\n\n    # TODO fix indents after text: https://github.com/sqlfluff/sqlfluff/pull/590#issuecomment-739484190\n    def _eval(self, context: RuleContext) -> LintResult:\n        \"\"\"Incorrect indentation found in file.\"\"\"\n        # Config type hints\n        self.tab_space_size: int\n        self.indent_unit: str\n\n        tab = \"\\t\"\n        space = \" \"\n        correct_indent = (\n            space * self.tab_space_size if self.indent_unit == \"space\" else tab\n        )\n        wrong_indent = (\n            tab if self.indent_unit == \"space\" else space * self.tab_space_size\n        )",
+        "file_path": "src/sqlfluff/rules/L004.py",
+        "chunk_index": 3,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L004.py",
+          "chunk_size": 451,
+          "line_count": 17,
+          "start_line_no": 42,
+          "end_line_no": 58,
+          "node_count": 16
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6231033802032471,
+        "content": "@document_fix_compatible\nclass Rule_L039(BaseRule):\n    \"\"\"Unnecessary whitespace found.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        SELECT\n            a,        b\n        FROM foo\n\n    | **Best practice**\n    | Unless an indent or preceding a comment, whitespace should\n    | be a single space.\n\n    .. code-block:: sql\n\n        SELECT\n            a, b\n        FROM foo\n    \"\"\"\n\n    def _eval(self, context: RuleContext) -> Optional[List[LintResult]]:\n        \"\"\"Unnecessary whitespace.\"\"\"\n        # For the given segment, lint whitespace directly within it.\n        prev_newline = True\n        prev_whitespace = None\n        violations = []",
+        "file_path": "src/sqlfluff/rules/L039.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L039.py",
+          "chunk_size": 441,
+          "line_count": 29,
+          "start_line_no": 9,
+          "end_line_no": 37,
+          "node_count": 17
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.6216821670532227,
+        "content": "    def _coerce_indent_to(\n        self,\n        desired_indent: str,\n        current_indent_buffer: Tuple[RawSegment, ...],\n        current_anchor: BaseSegment,\n    ) -> List[LintFix]:\n        \"\"\"Generate fixes to make an indent a certain size.\"\"\"\n        # If there shouldn't be an indent at all, just delete.",
+        "file_path": "src/sqlfluff/rules/L003.py",
+        "chunk_index": 16,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L003.py",
+          "chunk_size": 223,
+          "line_count": 8,
+          "start_line_no": 253,
+          "end_line_no": 260,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.6094626188278198,
+        "content": "@document_fix_compatible\nclass Rule_L005(BaseRule):\n    \"\"\"Commas should not have whitespace directly before them.\n\n    Unless it's an indent. Trailing/leading commas are dealt with\n    in a different rule.\n\n    | **Anti-pattern**\n    | The • character represents a space.\n    | There is an extra space in line two before the comma.\n\n    .. code-block:: sql\n       :force:\n\n        SELECT\n            a•,\n            b\n        FROM foo\n\n    | **Best practice**\n    | Remove the space before the comma.\n\n    .. code-block:: sql\n\n        SELECT\n            a,\n            b\n        FROM foo\n    \"\"\"",
+        "file_path": "src/sqlfluff/rules/L005.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L005.py",
+          "chunk_size": 386,
+          "line_count": 29,
+          "start_line_no": 7,
+          "end_line_no": 35,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6064331531524658,
+        "content": "@document_fix_compatible\nclass Rule_L023(BaseRule):\n    \"\"\"Single whitespace expected after AS in WITH clause.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        WITH plop AS(\n            SELECT * FROM foo\n        )\n\n        SELECT a FROM plop\n\n\n    | **Best practice**\n    | The • character represents a space.\n    | Add a space after AS, to avoid confusing\n    | it for a function.\n\n    .. code-block:: sql\n       :force:\n\n        WITH plop AS•(\n            SELECT * FROM foo\n        )\n\n        SELECT a FROM plop\n    \"\"\"\n\n    expected_mother_segment_type = \"with_compound_statement\"\n    pre_segment_identifier = (\"name\", \"as\")\n    post_segment_identifier = (\"type\", \"bracketed\")\n    allow_newline = False",
+        "file_path": "src/sqlfluff/rules/L023.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L023.py",
+          "chunk_size": 491,
+          "line_count": 34,
+          "start_line_no": 10,
+          "end_line_no": 43,
+          "node_count": 10
+        }
+      }
+    ]
+  },
+  "sqlfluff__sqlfluff-1517": {
+    "query": "\"Dropped elements in sequence matching\" when doubled semicolon\n## Expected Behaviour\r\nFrankly, I'm not sure whether it (doubled `;`) should be just ignored or rather some specific rule should be triggered.\r\n## Observed Behaviour\r\n```console\r\n(.venv) ?master ~/prod/_inne/sqlfluff> echo \"select id from tbl;;\" | sqlfluff lint -\r\nTraceback (most recent call last):\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/bin/sqlfluff\", line 11, in <module>\r\n    load_entry_point('sqlfluff', 'console_scripts', 'sqlfluff')()\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/lib/python3.9/site-packages/click/core.py\", line 1137, in __call__\r\n    return self.main(*args, **kwargs)\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/lib/python3.9/site-packages/click/core.py\", line 1062, in main\r\n    rv = self.invoke(ctx)\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/lib/python3.9/site-packages/click/core.py\", line 1668, in invoke\r\n    return _process_result(sub_ctx.command.invoke(sub_ctx))\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/lib/python3.9/site-packages/click/core.py\", line 1404, in invoke\r\n    return ctx.invoke(self.callback, **ctx.params)\r\n  File \"/home/adam/prod/_inne/sqlfluff/.venv/lib/python3.9/site-packages/click/core.py\", line 763, in invoke\r\n    return __callback(*args, **kwargs)\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/cli/commands.py\", line 347, in lint\r\n    result = lnt.lint_string_wrapped(sys.stdin.read(), fname=\"stdin\")\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/linter/linter.py\", line 789, in lint_string_wrapped\r\n    linted_path.add(self.lint_string(string, fname=fname, fix=fix))\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/linter/linter.py\", line 668, in lint_string\r\n    parsed = self.parse_string(in_str=in_str, fname=fname, config=config)\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/linter/linter.py\", line 607, in parse_string\r\n    return self.parse_rendered(rendered, recurse=recurse)\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/linter/linter.py\", line 313, in parse_rendered\r\n    parsed, pvs = cls._parse_tokens(\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/linter/linter.py\", line 190, in _parse_tokens\r\n    parsed: Optional[BaseSegment] = parser.parse(\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/parser/parser.py\", line 32, in parse\r\n    parsed = root_segment.parse(parse_context=ctx)\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/parser/segments/base.py\", line 821, in parse\r\n    check_still_complete(segments, m.matched_segments, m.unmatched_segments)\r\n  File \"/home/adam/prod/_inne/sqlfluff/src/sqlfluff/core/parser/helpers.py\", line 30, in check_still_complete\r\n    raise RuntimeError(\r\nRuntimeError: Dropped elements in sequence matching! 'select id from tbl;;' != ';'\r\n\r\n```\r\n## Steps to Reproduce\r\nRun \r\n```console\r\necho \"select id from tbl;;\" | sqlfluff lint -\r\n```\r\n## Dialect\r\ndefault (ansi)\r\n## Version\r\n```\r\nsqlfluff, version 0.6.6\r\nPython 3.9.5\r\n```\r\n## Configuration\r\nNone\r\n\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6418256759643555,
+        "content": "    def _eval(self, segment, parent_stack, **kwargs):\n        \"\"\"Trailing commas within select clause.\"\"\"\n        if segment.is_type(\"select_clause\"):\n            # Iterate content to find last element\n            last_content = None\n            for seg in segment.segments:\n                if seg.is_code:\n                    last_content = seg\n\n            # What mode are we in?\n            if self.select_clause_trailing_comma == \"forbid\":\n                # Is it a comma?\n                if last_content.is_type(\"comma\"):\n                    return LintResult(\n                        anchor=last_content,\n                        fixes=[LintFix(\"delete\", last_content)],\n                        description=\"Trailing comma in select statement forbidden\",\n                    )",
+        "file_path": "src/sqlfluff/rules/L038.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L038.py",
+          "chunk_size": 461,
+          "line_count": 18,
+          "start_line_no": 41,
+          "end_line_no": 58,
+          "node_count": 17
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6196964979171753,
+        "content": "@document_configuration\n@document_fix_compatible\nclass Rule_L038(BaseRule):\n    \"\"\"Trailing commas within select clause.\n\n    For some database backends this is allowed. For some users\n    this may be something they wish to enforce (in line with\n    python best practice). Many database backends regard this\n    as a syntax error, and as such the sqlfluff default is to\n    forbid trailing commas in the select clause.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        SELECT\n            a, b,\n        FROM foo\n\n    | **Best practice**\n\n    .. code-block:: sql\n\n        SELECT\n            a, b\n        FROM foo\n    \"\"\"\n\n    config_keywords = [\"select_clause_trailing_comma\"]",
+        "file_path": "src/sqlfluff/rules/L038.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L038.py",
+          "chunk_size": 489,
+          "line_count": 29,
+          "start_line_no": 11,
+          "end_line_no": 39,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6196224093437195,
+        "content": "\"\"\"Sequence and Bracketed Grammars.\"\"\"\n\nfrom typing import Optional, List, Tuple, cast\n\nfrom sqlfluff.core.errors import SQLParseError\n\nfrom sqlfluff.core.parser.segments import (\n    BaseSegment,\n    Indent,\n    Dedent,\n    allow_ephemeral,\n    BracketedSegment,\n    MetaSegment,\n)\nfrom sqlfluff.core.parser.helpers import trim_non_code_segments, check_still_complete\nfrom sqlfluff.core.parser.match_result import MatchResult\nfrom sqlfluff.core.parser.match_wrapper import match_wrapper\nfrom sqlfluff.core.parser.context import ParseContext",
+        "file_path": "src/sqlfluff/core/parser/grammar/sequence.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/sqlfluff/core/parser/grammar/sequence.py",
+          "chunk_size": 472,
+          "line_count": 18,
+          "start_line_no": 0,
+          "end_line_no": 17,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.61614990234375,
+        "content": "@ansi_dialect.segment()\nclass DropSequenceStatementSegment(BaseSegment):\n    \"\"\"Drop Sequence Statement.\n\n    As specified in https://docs.oracle.com/cd/E11882_01/server.112/e41084/statements_9001.htm\n    \"\"\"\n\n    type = \"drop_sequence_statement\"\n\n    match_grammar = Sequence(\"DROP\", \"SEQUENCE\", Ref(\"SequenceReferenceSegment\"))",
+        "file_path": "src/sqlfluff/dialects/dialect_ansi.py",
+        "chunk_index": 198,
+        "metadata": {
+          "filepath": "src/sqlfluff/dialects/dialect_ansi.py",
+          "chunk_size": 288,
+          "line_count": 10,
+          "start_line_no": 3137,
+          "end_line_no": 3146,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6105555295944214,
+        "content": "    \"select_clause_trailing_comma\": {\n        \"validation\": [\"forbid\", \"require\"],\n        \"definition\": (\n            \"Should trailing commas within select clauses be required or forbidden\"\n        ),\n    },\n    \"ignore_comment_lines\": {\n        \"validation\": [True, False],\n        \"definition\": (\n            \"Should lines that contain only whitespace and comments\"\n            \" be ignored when linting line lengths\"\n        ),\n    },\n    \"forbid_subquery_in\": {\n        \"validation\": [\"join\", \"from\", \"both\"],\n        \"definition\": \"Which clauses should be linted for subqueries\",\n    },",
+        "file_path": "src/sqlfluff/core/rules/config_info.py",
+        "chunk_index": 5,
+        "metadata": {
+          "filepath": "src/sqlfluff/core/rules/config_info.py",
+          "chunk_size": 411,
+          "line_count": 17,
+          "start_line_no": 73,
+          "end_line_no": 89,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6004235744476318,
+        "content": "\"\"\"Implementation of Rule L044.\"\"\"\nfrom typing import Dict, List\n\nfrom sqlfluff.core.rules.analysis.select_crawler import SelectCrawler\nfrom sqlfluff.core.dialects.base import Dialect\nfrom sqlfluff.core.rules.base import BaseRule, LintResult\n\n\nclass RuleFailure(Exception):\n    \"\"\"Exception class for reporting lint failure inside deeply nested code.\"\"\"\n\n    pass",
+        "file_path": "src/sqlfluff/rules/L044.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L044.py",
+          "chunk_size": 317,
+          "line_count": 12,
+          "start_line_no": 0,
+          "end_line_no": 11,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.5949647426605225,
+        "content": "@postgres_dialect.segment(replace=True)\nclass DropSequenceStatementSegment(BaseSegment):\n    \"\"\"Drop Sequence Statement.\n\n    As specified in https://www.postgresql.org/docs/13/sql-dropsequence.html\n    \"\"\"\n\n    type = \"drop_sequence_statement\"\n\n    match_grammar = Sequence(\n        \"DROP\",\n        \"SEQUENCE\",\n        Ref(\"IfExistsGrammar\", optional=True),\n        Delimited(Ref(\"SequenceReferenceSegment\")),\n        OneOf(\"CASCADE\", \"RESTRICT\", optional=True),\n    )",
+        "file_path": "src/sqlfluff/dialects/dialect_postgres.py",
+        "chunk_index": 100,
+        "metadata": {
+          "filepath": "src/sqlfluff/dialects/dialect_postgres.py",
+          "chunk_size": 377,
+          "line_count": 16,
+          "start_line_no": 1741,
+          "end_line_no": 1756,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5878525972366333,
+        "content": "@document_fix_compatible\nclass Rule_L041(BaseRule):\n    \"\"\"SELECT clause modifiers such as DISTINCT must be on the same line as SELECT.\n\n    | **Anti-pattern**\n\n    .. code-block:: sql\n\n        select\n            distinct a,\n            b\n        from x\n\n\n    | **Best practice**\n\n    .. code-block:: sql\n\n        select distinct\n            a,\n            b\n        from x\n\n    \"\"\"\n\n    def _eval(self, segment, **kwargs):\n        \"\"\"Select clause modifiers must appear on same line as SELECT.\"\"\"\n        if segment.is_type(\"select_clause\"):\n            # Does the select clause have modifiers?",
+        "file_path": "src/sqlfluff/rules/L041.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L041.py",
+          "chunk_size": 387,
+          "line_count": 29,
+          "start_line_no": 8,
+          "end_line_no": 36,
+          "node_count": 15
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5863876342773438,
+        "content": "        return violation_buff or None\n\n    def _eval(self, segment, parent_stack, dialect, **kwargs):\n        \"\"\"Override Rule L020 for dialects that use structs.\n\n        Some dialects use structs (e.g. column.field) which look like\n        table references and so incorrectly trigger this rule.\n        \"\"\"\n        if dialect.name in [\"bigquery\"] and not self.force_enable:\n            return LintResult()\n\n        return super()._eval(segment, parent_stack, dialect, **kwargs)",
+        "file_path": "src/sqlfluff/rules/L026.py",
+        "chunk_index": 6,
+        "metadata": {
+          "filepath": "src/sqlfluff/rules/L026.py",
+          "chunk_size": 355,
+          "line_count": 12,
+          "start_line_no": 85,
+          "end_line_no": 96,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5807198286056519,
+        "content": "@mysql_dialect.segment(replace=True)\nclass SelectClauseElementSegment(BaseSegment):\n    \"\"\"An element in the targets of a select statement.\"\"\"\n\n    type = \"select_clause_element\"\n\n    match_grammar = ansi_dialect.get_segment(\n        \"SelectClauseElementSegment\"\n    ).match_grammar.copy()\n\n    parse_grammar = ansi_dialect.get_segment(\n        \"SelectClauseElementSegment\"\n    ).parse_grammar.copy()",
+        "file_path": "src/sqlfluff/dialects/dialect_mysql.py",
+        "chunk_index": 45,
+        "metadata": {
+          "filepath": "src/sqlfluff/dialects/dialect_mysql.py",
+          "chunk_size": 333,
+          "line_count": 13,
+          "start_line_no": 735,
+          "end_line_no": 747,
+          "node_count": 1
+        }
+      }
+    ]
+  },
+  "sqlfluff__sqlfluff-1763": {
+    "query": "dbt postgres fix command errors with UnicodeEncodeError and also wipes the .sql file\n_If this is a parsing or linting issue, please include a minimal SQL example which reproduces the issue, along with the `sqlfluff parse` output, `sqlfluff lint` output and `sqlfluff fix` output when relevant._\r\n\r\n## Expected Behaviour\r\nViolation failure notice at a minimum, without wiping the file. Would like a way to ignore the known error at a minimum as --noqa is not getting past this. Actually would expect --noqa to totally ignore this.\r\n\r\n## Observed Behaviour\r\nReported error: `UnicodeEncodeError: 'charmap' codec can't encode character '\\u2192' in position 120: character maps to <undefined>`\r\n\r\n## Steps to Reproduce\r\nSQL file:\r\n```sql\r\nSELECT\r\n    reacted_table_name_right.descendant_id AS category_id,\r\n    string_agg(redacted_table_name_left.name, ' → ' ORDER BY reacted_table_name_right.generations DESC) AS breadcrumbs -- noqa\r\nFROM {{ ref2('redacted_schema_name', 'redacted_table_name_left') }} AS redacted_table_name_left\r\nINNER JOIN {{ ref2('redacted_schema_name', 'reacted_table_name_right') }} AS reacted_table_name_right\r\n    ON redacted_table_name_left.id = order_issue_category_hierarchies.ancestor_id\r\nGROUP BY reacted_table_name_right.descendant_id\r\n```\r\nRunning `sqlfluff fix --ignore templating,parsing,lexing -vvvv` and accepting proposed fixes for linting violations.\r\n\r\n## Dialect\r\n`postgres`, with `dbt` templater\r\n\r\n## Version\r\n`python 3.7.12`\r\n`sqlfluff 0.7.0`\r\n`sqlfluff-templater-dbt 0.7.0`\r\n\r\n## Configuration\r\nI've tried a few, here's one:\r\n```\r\n[sqlfluff]\r\nverbose = 2\r\ndialect = postgres\r\ntemplater = dbt\r\nexclude_rules = None\r\noutput_line_length = 80\r\nrunaway_limit = 10\r\nignore_templated_areas = True\r\nprocesses = 3\r\n# Comma separated list of file extensions to lint.\r\n\r\n# NB: This config will only apply in the root folder.\r\nsql_file_exts = .sql\r\n\r\n[sqlfluff:indentation]\r\nindented_joins = False\r\nindented_using_on = True\r\ntemplate_blocks_indent = True\r\n\r\n[sqlfluff:templater]\r\nunwrap_wrapped_queries = True\r\n\r\n[sqlfluff:templater:jinja]\r\napply_dbt_builtins = True\r\n\r\n[sqlfluff:templater:jinja:macros]\r\n# Macros provided as builtins for dbt projects\r\ndbt_ref = {% macro ref(model_ref) %}{{model_ref}}{% endmacro %}\r\ndbt_source = {% macro source(source_name, table) %}{{source_name}}_{{table}}{% endmacro %}\r\ndbt_config = {% macro config() %}{% for k in kwargs %}{% endfor %}{% endmacro %}\r\ndbt_var = {% macro var(variable, default='') %}item{% endmacro %}\r\ndbt_is_incremental = {% macro is_incremental() %}True{% endmacro %}\r\n\r\n# Common config across rules\r\n[sqlfluff:rules]\r\ntab_space_size = 4\r\nindent_unit = space\r\nsingle_table_references = consistent\r\nunquoted_identifiers_policy = all\r\n\r\n# L001 - Remove trailing whitespace (fix)\r\n# L002 - Single section of whitespace should not contain both tabs and spaces (fix)\r\n# L003 - Keep consistent indentation (fix)\r\n# L004 - We use 4 spaces for indentation just for completeness (fix)\r\n# L005 - Remove space before commas (fix)\r\n# L006 - Operators (+, -, *, /) will be wrapped by a single space each side (fix)\r\n\r\n# L007 - Operators should not be at the end of a line\r\n[sqlfluff:rules:L007]  # Keywords\r\noperator_new_lines = after\r\n\r\n# L008 - Always use a single whitespace after a comma (fix)\r\n# L009 - Files will always end with a trailing newline\r\n\r\n# L010 - All keywords will use full upper case (fix)\r\n[sqlfluff:rules:L010]  # Keywords\r\ncapitalisation_policy = upper\r\n\r\n# L011 - Always explicitly alias tables (fix)\r\n[sqlfluff:rules:L011]  # Aliasing\r\naliasing = explicit\r\n\r\n# L012 - Do not have to explicitly alias all columns\r\n[sqlfluff:rules:L012]  # Aliasing\r\naliasing = explicit\r\n\r\n# L013 - Always explicitly alias a column with an expression in it (fix)\r\n[sqlfluff:rules:L013]  # Aliasing\r\nallow_scalar = False\r\n\r\n# L014 - Always user full lower case for 'quoted identifiers' -> column refs. without an alias (fix)\r\n[sqlfluff:rules:L014]  # Unquoted identifiers\r\nextended_capitalisation_policy = lower\r\n\r\n# L015 - Always remove parenthesis when using DISTINCT to be clear that DISTINCT applies to all columns (fix)\r\n\r\n# L016 - Lines should be 120 characters of less. Comment lines should not be ignored (fix)\r\n[sqlfluff:rules:L016]\r\nignore_comment_lines = False\r\nmax_line_length = 120\r\n\r\n# L017 - There should not be whitespace between function name and brackets (fix)\r\n# L018 - Always align closing bracket of WITH to the WITH keyword (fix)\r\n\r\n# L019 - Always use trailing commas / commas at the end of the line (fix)\r\n[sqlfluff:rules:L019]\r\ncomma_style = trailing\r\n\r\n# L020 - Table aliases will always be unique per statement\r\n# L021 - Remove any use of ambiguous DISTINCT and GROUP BY combinations. Lean on removing the GROUP BY.\r\n# L022 - Add blank lines after common table expressions (CTE) / WITH.\r\n# L023 - Always add a single whitespace after AS in a WITH clause (fix)\r\n\r\n[sqlfluff:rules:L026]\r\nforce_enable = False\r\n\r\n# L027 - Always add references if more than one referenced table or view is used\r\n\r\n[sqlfluff:rules:L028]\r\nforce_enable = False\r\n\r\n[sqlfluff:rules:L029]  # Keyword identifiers\r\nunquoted_identifiers_policy = aliases\r\n\r\n[sqlfluff:rules:L030]  # Function names\r\ncapitalisation_policy = upper\r\n\r\n# L032 - We prefer use of join keys rather than USING\r\n# L034 - We prefer ordering of columns in select statements as (fix):\r\n# 1. wildcards\r\n# 2. single identifiers\r\n# 3. calculations and aggregates\r\n\r\n# L035 - Omit 'else NULL'; it is redundant (fix)\r\n# L036 - Move select targets / identifiers onto new lines each (fix)\r\n# L037 - When using ORDER BY, make the direction explicit (fix)\r\n\r\n# L038 - Never use trailing commas at the end of the SELECT clause\r\n[sqlfluff:rules:L038]\r\nselect_clause_trailing_comma = forbid\r\n\r\n# L039 - Remove unnecessary whitespace (fix)\r\n\r\n[sqlfluff:rules:L040]  # Null & Boolean Literals\r\ncapitalisation_policy = upper\r\n\r\n# L042 - Join clauses should not contain subqueries. Use common tables expressions (CTE) instead.\r\n[sqlfluff:rules:L042]\r\n# By default, allow subqueries in from clauses, but not join clauses.\r\nforbid_subquery_in = join\r\n\r\n# L043 - Reduce CASE WHEN conditions to COALESCE (fix)\r\n# L044 - Prefer a known number of columns along the path to the source data\r\n# L045 - Remove unused common tables expressions (CTE) / WITH statements (fix)\r\n# L046 - Jinja tags should have a single whitespace on both sides\r\n\r\n# L047 - Use COUNT(*) instead of COUNT(0) or COUNT(1) alternatives (fix)\r\n[sqlfluff:rules:L047]  # Consistent syntax to count all rows\r\nprefer_count_1 = False\r\nprefer_count_0 = False\r\n\r\n# L048 - Quoted literals should be surrounded by a single whitespace (fix)\r\n# L049 - Always use IS or IS NOT for comparisons with NULL (fix)\r\n```\r\n\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6813315749168396,
+        "content": "def fix(sql, dialect=\"ansi\", rules=None):\n    \"\"\"Fix a sql string or file.\n\n    Args:\n        sql (:obj:`str` or file-like object): The sql to be linted\n            either as a string or a subclass of :obj:`TextIOBase`.\n        dialect (:obj:`str`, optional): A reference to the dialect of the sql\n            to be linted. Defaults to `ansi`.\n        rules (:obj:`str` or iterable of :obj:`str`, optional): A subset of rule\n            reference to lint for.\n\n    Returns:\n        :obj:`str` for the fixed sql if possible.\n    \"\"\"\n    sql = _unify_str_or_file(sql)\n    linter = Linter(dialect=dialect, rules=rules)\n\n    result = linter.lint_string_wrapped(sql, fix=True)",
+        "file_path": "src/sqlfluff/api/simple.py",
+        "chunk_index": 5,
+        "metadata": {
+          "filepath": "src/sqlfluff/api/simple.py",
+          "chunk_size": 491,
+          "line_count": 18,
+          "start_line_no": 49,
+          "end_line_no": 66,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6650819778442383,
+        "content": "\"\"\"This is an example of how to use the simple sqlfluff api.\"\"\"\n\nimport sqlfluff\n\n#  -------- LINTING ----------\n\nmy_bad_query = \"SeLEct  *, 1, blah as  fOO  from myTable\"\n\n# Lint the given string and get a list of violations found.\nresult = sqlfluff.lint(my_bad_query, dialect=\"bigquery\")\n\n# result =\n# [\n#     {\"code\": \"L010\", \"line_no\": 1, \"line_pos\": 1, \"description\": \"Keywords must be consistently upper case.\"}\n#     ...\n# ]\n\n#  -------- FIXING ----------\n\n# Fix the given string and get a string back which has been fixed.\nresult = sqlfluff.fix(my_bad_query, dialect=\"bigquery\")",
+        "file_path": "examples/01_basic_api_usage.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "examples/01_basic_api_usage.py",
+          "chunk_size": 478,
+          "line_count": 21,
+          "start_line_no": 0,
+          "end_line_no": 20,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6394723057746887,
+        "content": "setup(\n    name=\"sqlfluff-templater-dbt\",\n    version=\"0.7.1\",\n    include_package_data=False,\n    license=\"MIT License\",\n    description=\"Lint your dbt project SQL.\",\n    long_description=read(\"README.md\"),\n    # Make sure pypi is expecting markdown!\n    long_description_content_type=\"text/markdown\",\n    author=\"Alan Cruickshank\",\n    author_email=\"alan@designingoverload.com\",\n    url=\"https://github.com/sqlfluff/sqlfluff\",\n    python_requires=\">=3.6\",\n    keywords=[\n        \"sqlfluff\",\n        \"sql\",\n        \"linter\",\n        \"formatter\",\n        \"dbt\",\n    ],",
+        "file_path": "plugins/sqlfluff-templater-dbt/setup.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "plugins/sqlfluff-templater-dbt/setup.py",
+          "chunk_size": 441,
+          "line_count": 20,
+          "start_line_no": 12,
+          "end_line_no": 31,
+          "node_count": 27
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6328125596046448,
+        "content": "# result = 'SELECT  *, 1, blah AS  foo  FROM mytable\\n'\n\n# We can also fix just specific rules.\nresult = sqlfluff.fix(my_bad_query, rules=\"L010\")\n# result = 'SELECT  *, 1, blah AS  fOO  FROM myTable'\n\n# Or a subset of rules...\nresult = sqlfluff.fix(my_bad_query, rules=[\"L010\", \"L014\"])\n# result = 'SELECT  *, 1, blah AS  fOO  FROM mytable'\n\n#  -------- PARSING ----------\n# NOTE: sqlfluff is still in a relatively early phase of its\n# development and so until version 1.0.0 will offer no guarantee\n# that the names and structure of the objects returned by these",
+        "file_path": "examples/01_basic_api_usage.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "examples/01_basic_api_usage.py",
+          "chunk_size": 455,
+          "line_count": 14,
+          "start_line_no": 21,
+          "end_line_no": 34,
+          "node_count": 11
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6265426874160767,
+        "content": "    project_urls={\n        \"Homepage\": \"https://www.sqlfluff.com\",\n        \"Documentation\": \"https://docs.sqlfluff.com\",\n        \"Changes\": \"https://github.com/sqlfluff/sqlfluff/blob/main/CHANGELOG.md\",\n        \"Source\": \"https://github.com/sqlfluff/sqlfluff\",\n        \"Issue Tracker\": \"https://github.com/sqlfluff/sqlfluff/issues\",\n        \"Twitter\": \"https://twitter.com/SQLFluff\",\n        \"Chat\": \"https://github.com/sqlfluff/sqlfluff#sqlfluff-on-slack\",\n    },\n    packages=[\"sqlfluff_templater_dbt\"],",
+        "file_path": "plugins/sqlfluff-templater-dbt/setup.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "plugins/sqlfluff-templater-dbt/setup.py",
+          "chunk_size": 420,
+          "line_count": 10,
+          "start_line_no": 32,
+          "end_line_no": 41,
+          "node_count": 4
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6130795478820801,
+        "content": "from dbt.exceptions import (\n    CompilationException as DbtCompilationException,\n    FailedToConnectException as DbtFailedToConnectException,\n)\n\nfrom sqlfluff.core.errors import SQLTemplaterError, SQLTemplaterSkipFile\n\nfrom sqlfluff.core.templaters.base import TemplatedFile\nfrom sqlfluff.core.templaters.jinja import JinjaTemplater\n\n# Instantiate the templater logger\ntemplater_logger = logging.getLogger(\"sqlfluff.templater\")\n\n\nDBT_VERSION = get_installed_version()\nDBT_VERSION_STRING = DBT_VERSION.to_version_string()",
+        "file_path": "plugins/sqlfluff-templater-dbt/sqlfluff_templater_dbt/templater.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "plugins/sqlfluff-templater-dbt/sqlfluff_templater_dbt/templater.py",
+          "chunk_size": 471,
+          "line_count": 16,
+          "start_line_no": 17,
+          "end_line_no": 32,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6082613468170166,
+        "content": "class SQLFluffViolationReporter(BaseViolationReporter):\n    \"\"\"Class that implements diff-quality integration.\"\"\"\n\n    supported_extensions = [\"sql\"]\n\n    def __init__(self):\n        \"\"\"Calls the base class constructor to set the object's name.\"\"\"\n        super().__init__(\"sqlfluff\")\n\n    @staticmethod\n    def violations(src_path: str) -> List[Violation]:",
+        "file_path": "src/sqlfluff/diff_quality_plugin.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/diff_quality_plugin.py",
+          "chunk_size": 290,
+          "line_count": 11,
+          "start_line_no": 9,
+          "end_line_no": 19,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.6057817935943604,
+        "content": "\"\"\"Sqlfluff is a SQL linter for humans.\"\"\"\nimport sys\nimport pytest\n\n# Expose the public API.\nfrom sqlfluff.api import lint, fix, parse, list_rules, list_dialects  # noqa: F401\n\n# Set the version attribute of the library\nimport pkg_resources\nimport configparser\n\n# Get the current version\nconfig = configparser.ConfigParser()\nconfig.read([pkg_resources.resource_filename(\"sqlfluff\", \"config.ini\")])\n\n__version__ = config.get(\"sqlfluff\", \"version\")\n\n# Check major python version",
+        "file_path": "src/sqlfluff/__init__.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/sqlfluff/__init__.py",
+          "chunk_size": 414,
+          "line_count": 18,
+          "start_line_no": 0,
+          "end_line_no": 17,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.6039659976959229,
+        "content": "class SQLBaseError(ValueError):\n    \"\"\"Base Error Class for all violations.\"\"\"\n\n    _code: Optional[str] = None\n    _identifier = \"base\"\n\n    def __init__(\n        self,\n        *args,\n        pos=None,\n        line_no=0,\n        line_pos=0,\n        ignore=False,\n        fatal=False,\n        **kwargs\n    ):\n        self.fatal = fatal\n        self.ignore = ignore\n        if pos:\n            self.line_no, self.line_pos = pos.source_position()\n        else:\n            self.line_no = line_no\n            self.line_pos = line_pos\n        super().__init__(*args, **kwargs)\n\n    @property\n    def fixable(self):\n        \"\"\"Should this error be considered fixable?\"\"\"\n        return False",
+        "file_path": "src/sqlfluff/core/errors.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/core/errors.py",
+          "chunk_size": 442,
+          "line_count": 29,
+          "start_line_no": 6,
+          "end_line_no": 34,
+          "node_count": 9
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6035715937614441,
+        "content": "import bdb\nimport copy\nimport logging\nimport pathlib\nimport re\nfrom typing import Optional, List, Tuple, Union, Any\nfrom collections import namedtuple\nfrom dataclasses import dataclass\n\nfrom sqlfluff.core.linter import LintedFile\nfrom sqlfluff.core.parser import BaseSegment, RawSegment\nfrom sqlfluff.core.dialects import Dialect\nfrom sqlfluff.core.errors import SQLLintError\nfrom sqlfluff.core.templaters.base import TemplatedFile\n\n# The ghost of a rule (mostly used for testing)\nRuleGhost = namedtuple(\"RuleGhost\", [\"code\", \"description\"])",
+        "file_path": "src/sqlfluff/core/rules/base.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/sqlfluff/core/rules/base.py",
+          "chunk_size": 478,
+          "line_count": 17,
+          "start_line_no": 16,
+          "end_line_no": 32,
+          "node_count": 15
+        }
+      }
+    ]
+  },
+  "marshmallow-code__marshmallow-1359": {
+    "query": "3.0: DateTime fields cannot be used as inner field for List or Tuple fields\nBetween releases 3.0.0rc8 and 3.0.0rc9, `DateTime` fields have started throwing an error when being instantiated as inner fields of container fields like `List` or `Tuple`. The snippet below works in <=3.0.0rc8 and throws the error below in >=3.0.0rc9 (and, worryingly, 3.0.0):\r\n\r\n```python\r\nfrom marshmallow import fields, Schema\r\n\r\nclass MySchema(Schema):\r\n    times = fields.List(fields.DateTime())\r\n\r\ns = MySchema()\r\n```\r\n\r\nTraceback:\r\n```\r\nTraceback (most recent call last):\r\n  File \"test-mm.py\", line 8, in <module>\r\n    s = MySchema()\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 383, in __init__\r\n    self.fields = self._init_fields()\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 913, in _init_fields\r\n    self._bind_field(field_name, field_obj)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 969, in _bind_field\r\n    field_obj._bind_to_schema(field_name, self)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/fields.py\", line 636, in _bind_to_schema\r\n    self.inner._bind_to_schema(field_name, self)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/fields.py\", line 1117, in _bind_to_schema\r\n    or getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME)\r\nAttributeError: 'List' object has no attribute 'opts'\r\n```\r\n\r\nIt seems like it's treating the parent field as a Schema without checking that it is indeed a schema, so the `schema.opts` statement fails as fields don't have an `opts` attribute.\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6001803278923035,
+        "content": "class RegistryError(NameError):\n    \"\"\"Raised when an invalid operation is performed on the serializer\n    class registry.\n    \"\"\"\n\n\nclass StringNotCollectionError(MarshmallowError, TypeError):\n    \"\"\"Raised when a string is passed when a list of strings is expected.\"\"\"\n\n\nclass FieldInstanceResolutionError(MarshmallowError, TypeError):\n    \"\"\"Raised when schema to instantiate is neither a Schema class nor an instance.\"\"\"",
+        "file_path": "src/marshmallow/exceptions.py",
+        "chunk_index": 3,
+        "metadata": {
+          "filepath": "src/marshmallow/exceptions.py",
+          "chunk_size": 354,
+          "line_count": 12,
+          "start_line_no": 40,
+          "end_line_no": 51,
+          "node_count": 3
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.5977797508239746,
+        "content": "\"\"\"Field classes for various types of data.\"\"\"\n\nimport collections\nimport copy\nimport datetime as dt\nimport numbers\nimport uuid\nimport decimal\nimport math\nimport warnings\nfrom collections.abc import Mapping as _Mapping\n\nfrom marshmallow import validate, utils, class_registry\nfrom marshmallow.base import FieldABC, SchemaABC\nfrom marshmallow.utils import (\n    is_collection,\n    missing as missing_,\n    resolve_field_instance,\n    is_aware,\n)\nfrom marshmallow.exceptions import (\n    ValidationError,\n    StringNotCollectionError,\n    FieldInstanceResolutionError,\n)",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 478,
+          "line_count": 25,
+          "start_line_no": 0,
+          "end_line_no": 24,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.5962918996810913,
+        "content": "\"\"\"The :class:`Schema` class, including its metaclass and options (class Meta).\"\"\"\nfrom collections import defaultdict, OrderedDict\nfrom collections.abc import Mapping\nfrom functools import lru_cache\nimport datetime as dt\nimport uuid\nimport decimal\nimport copy\nimport inspect\nimport json\nimport typing\nimport warnings\n\nfrom marshmallow import base, fields as ma_fields, class_registry\nfrom marshmallow.error_store import ErrorStore\nfrom marshmallow.exceptions import ValidationError, StringNotCollectionError\nfrom marshmallow.orderedset import OrderedSet",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 492,
+          "line_count": 17,
+          "start_line_no": 0,
+          "end_line_no": 16,
+          "node_count": 16
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.5796363353729248,
+        "content": "def resolve_field_instance(cls_or_instance):\n    \"\"\"Return a Schema instance from a Schema class or instance.\n\n    :param type|Schema cls_or_instance: Marshmallow Schema class or instance.\n    \"\"\"\n    if isinstance(cls_or_instance, type):\n        if not issubclass(cls_or_instance, FieldABC):\n            raise FieldInstanceResolutionError\n        return cls_or_instance()\n    else:\n        if not isinstance(cls_or_instance, FieldABC):\n            raise FieldInstanceResolutionError\n        return cls_or_instance",
+        "file_path": "src/marshmallow/utils.py",
+        "chunk_index": 19,
+        "metadata": {
+          "filepath": "src/marshmallow/utils.py",
+          "chunk_size": 397,
+          "line_count": 13,
+          "start_line_no": 301,
+          "end_line_no": 313,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.5759602785110474,
+        "content": "    \"\"\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    \"\"\"\n\n    TYPE_MAPPING = {\n        str: ma_fields.String,\n        bytes: ma_fields.String,\n        dt.datetime: ma_fields.DateTime,\n        float: ma_fields.Float,\n        bool: ma_fields.Boolean,\n        tuple: ma_fields.Raw,\n        list: ma_fields.Raw,\n        set: ma_fields.Raw,\n        int: ma_fields.Integer,\n        uuid.UUID: ma_fields.UUID,\n        dt.time: ma_fields.Time,\n        dt.date: ma_fields.Date,\n        dt.timedelta: ma_fields.TimeDelta,\n        decimal.Decimal: ma_fields.Decimal,\n    }\n    #: Overrides for default schema-level error messages\n    error_messages = {}\n\n    _default_error_messages = {\n        \"type\": \"Invalid input type.\",\n        \"unknown\": \"Unknown field.\",\n    }",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 18,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 500,
+          "line_count": 82,
+          "start_line_no": 225,
+          "end_line_no": 306,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.569786787033081,
+        "content": "class List(Field):\n    \"\"\"A list field, composed with another `Field` class or\n    instance.\n\n    Example: ::\n\n        numbers = fields.List(fields.Float())\n\n    :param Field cls_or_instance: A field class or instance.\n    :param bool default: Default value for serialization.\n    :param kwargs: The same keyword arguments that :class:`Field` receives.\n\n    .. versionchanged:: 2.0.0\n        The ``allow_none`` parameter now applies to deserialization and\n        has the same semantics as the other fields.\n\n    .. versionchanged:: 3.0.0rc9\n        Does not serialize scalar values to single-item lists.\n    \"\"\"",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 35,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 468,
+          "line_count": 19,
+          "start_line_no": 597,
+          "end_line_no": 615,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.5668959021568298,
+        "content": "    default_error_messages = {\"invalid\": \"Not a valid list.\"}\n\n    def __init__(self, cls_or_instance, **kwargs):\n        super().__init__(**kwargs)\n        try:\n            self.inner = resolve_field_instance(cls_or_instance)\n        except FieldInstanceResolutionError as error:\n            raise ValueError(\n                \"The list elements must be a subclass or instance of \"\n                \"marshmallow.base.FieldABC.\"\n            ) from error\n        if isinstance(self.inner, Nested):\n            self.only = self.inner.only\n            self.exclude = self.inner.exclude",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 36,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 402,
+          "line_count": 14,
+          "start_line_no": 617,
+          "end_line_no": 630,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5663950443267822,
+        "content": "from marshmallow.schema import Schema, SchemaOpts\n\nfrom . import fields\nfrom marshmallow.decorators import (\n    pre_dump,\n    post_dump,\n    pre_load,\n    post_load,\n    validates,\n    validates_schema,\n)\nfrom marshmallow.utils import EXCLUDE, INCLUDE, RAISE, pprint, missing\nfrom marshmallow.exceptions import ValidationError\nfrom distutils.version import LooseVersion\n\n__version__ = \"3.0.0\"\n__version_info__ = tuple(LooseVersion(__version__).version)",
+        "file_path": "src/marshmallow/__init__.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/__init__.py",
+          "chunk_size": 386,
+          "line_count": 17,
+          "start_line_no": 0,
+          "end_line_no": 16,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5528643727302551,
+        "content": "        if getattr(self, \"allow_none\", False) is True and value is None:\n            return None\n        output = self._deserialize(value, attr, data, **kwargs)\n        self._validate(output)\n        return output\n\n    # Methods for concrete classes to override.\n\n    def _bind_to_schema(self, field_name, schema):\n        \"\"\"Update field with values from its parent schema. Called by\n        :meth:`Schema._bind_field <marshmallow.Schema._bind_field>`.\n\n        :param str field_name: Field name set in schema.\n        :param Schema schema: Parent schema.\n        \"\"\"\n        self.parent = self.parent or schema\n        self.name = self.name or field_name",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 18,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 478,
+          "line_count": 17,
+          "start_line_no": 326,
+          "end_line_no": 342,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.549118161201477,
+        "content": "class SchemaMeta(type):\n    \"\"\"Metaclass for the Schema class. Binds the declared fields to\n    a ``_declared_fields`` attribute, which is a dictionary mapping attribute\n    names to field objects. Also sets the ``opts`` class attribute, which is\n    the Schema class's ``class Meta`` options.\n    \"\"\"",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 6,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 242,
+          "line_count": 6,
+          "start_line_no": 83,
+          "end_line_no": 88,
+          "node_count": 5
+        }
+      }
+    ]
+  },
+  "marshmallow-code__marshmallow-1343": {
+    "query": "[version 2.20.0] TypeError: 'NoneType' object is not subscriptable\nAfter update from version 2.19.5 to 2.20.0 I got error for code like:\r\n\r\n```python\r\nfrom marshmallow import Schema, fields, validates\r\n\r\n\r\nclass Bar(Schema):\r\n    value = fields.String()\r\n\r\n    @validates('value')  # <- issue here\r\n    def validate_value(self, value):\r\n        pass\r\n\r\n\r\nclass Foo(Schema):\r\n    bar = fields.Nested(Bar)\r\n\r\n\r\nsch = Foo()\r\n\r\nsch.validate({\r\n    'bar': 'invalid',\r\n})\r\n```\r\n\r\n```\r\nTraceback (most recent call last):\r\n  File \"/_/bug_mschema.py\", line 19, in <module>\r\n    'bar': 'invalid',\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/schema.py\", line 628, in validate\r\n    _, errors = self._do_load(data, many, partial=partial, postprocess=False)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/schema.py\", line 670, in _do_load\r\n    index_errors=self.opts.index_errors,\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/marshalling.py\", line 292, in deserialize\r\n    index=(index if index_errors else None)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/marshalling.py\", line 65, in call_and_store\r\n    value = getter_func(data)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/marshalling.py\", line 285, in <lambda>\r\n    data\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/fields.py\", line 265, in deserialize\r\n    output = self._deserialize(value, attr, data)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/fields.py\", line 465, in _deserialize\r\n    data, errors = self.schema.load(value)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/schema.py\", line 588, in load\r\n    result, errors = self._do_load(data, many, partial=partial, postprocess=True)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/schema.py\", line 674, in _do_load\r\n    self._invoke_field_validators(unmarshal, data=result, many=many)\r\n  File \"/_/env/lib/python3.7/site-packages/marshmallow/schema.py\", line 894, in _invoke_field_validators\r\n    value = data[field_obj.attribute or field_name]\r\nTypeError: 'NoneType' object is not subscriptable\r\n```\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6096811890602112,
+        "content": "# -*- coding: utf-8 -*-\n\"\"\"Utility classes and values used for marshalling and unmarshalling objects to\nand from primitive types.\n\n.. warning::\n\n    This module is treated as private API.\n    Users should not need to use this module directly.\n\"\"\"\n\nfrom __future__ import unicode_literals\n\nimport collections\n\nfrom marshmallow.utils import is_collection, missing, set_value\nfrom marshmallow.compat import text_type, iteritems\nfrom marshmallow.exceptions import (\n    ValidationError,\n)\n\n__all__ = [\n    'Marshaller',\n    'Unmarshaller',\n]\n\n# Key used for field-level validation errors on nested fields",
+        "file_path": "src/marshmallow/marshalling.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/marshalling.py",
+          "chunk_size": 496,
+          "line_count": 26,
+          "start_line_no": 0,
+          "end_line_no": 25,
+          "node_count": 9
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6067862510681152,
+        "content": "# -*- coding: utf-8 -*-\nfrom __future__ import absolute_import\n\nfrom marshmallow.schema import (\n    Schema,\n    SchemaOpts,\n    MarshalResult,\n    UnmarshalResult,\n)\nfrom . import fields\nfrom marshmallow.decorators import (\n    pre_dump, post_dump, pre_load, post_load, validates, validates_schema\n)\nfrom marshmallow.utils import pprint, missing\nfrom marshmallow.exceptions import ValidationError\nfrom distutils.version import LooseVersion\n\n__version__ = '2.20.0'\n__version_info__ = tuple(LooseVersion(__version__).version)\n__author__ = 'Steven Loria'",
+        "file_path": "src/marshmallow/__init__.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/__init__.py",
+          "chunk_size": 475,
+          "line_count": 20,
+          "start_line_no": 0,
+          "end_line_no": 19,
+          "node_count": 11
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.5903372764587402,
+        "content": "from marshmallow.orderedset import OrderedSet\nfrom marshmallow.decorators import (PRE_DUMP, POST_DUMP, PRE_LOAD, POST_LOAD,\n                                    VALIDATES, VALIDATES_SCHEMA)\nfrom marshmallow.utils import missing\nfrom marshmallow.warnings import RemovedInMarshmallow3Warning, ChangedInMarshmallow3Warning\n\n\n#: Return type of :meth:`Schema.dump` including serialized data and errors\nMarshalResult = namedtuple('MarshalResult', ['data', 'errors'])\n#: Return type of :meth:`Schema.load`, including deserialized data and errors",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 453,
+          "line_count": 10,
+          "start_line_no": 18,
+          "end_line_no": 27,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.5900566577911377,
+        "content": "class Unmarshaller(ErrorStore):\n    \"\"\"Callable class responsible for deserializing data and storing errors.\n\n    .. versionadded:: 1.0.0\n    \"\"\"\n\n    default_schema_validation_error = 'Invalid data.'\n\n    def run_validator(self, validator_func, output,\n            original_data, fields_dict, index=None,\n            many=False, pass_original=False):\n        try:\n            if pass_original:  # Pass original, raw data (before unmarshalling)\n                res = validator_func(output, original_data)\n            else:\n                res = validator_func(output)\n            if res is False:\n                raise ValidationError(self.default_schema_validation_error)",
+        "file_path": "src/marshmallow/marshalling.py",
+        "chunk_index": 13,
+        "metadata": {
+          "filepath": "src/marshmallow/marshalling.py",
+          "chunk_size": 481,
+          "line_count": 18,
+          "start_line_no": 164,
+          "end_line_no": 181,
+          "node_count": 13
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.5827814340591431,
+        "content": "# -*- coding: utf-8 -*-\n\"\"\"Exception classes for marshmallow-related errors.\"\"\"\n\nfrom marshmallow.compat import basestring\n\nclass MarshmallowError(Exception):\n    \"\"\"Base class for all marshmallow-related errors.\"\"\"\n    pass",
+        "file_path": "src/marshmallow/exceptions.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/exceptions.py",
+          "chunk_size": 192,
+          "line_count": 8,
+          "start_line_no": 0,
+          "end_line_no": 7,
+          "node_count": 4
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.5823960304260254,
+        "content": "# -*- coding: utf-8 -*-\n\"\"\"The :class:`Schema` class, including its metaclass and options (class Meta).\"\"\"\nfrom __future__ import absolute_import, unicode_literals\n\nfrom collections import defaultdict, namedtuple\nimport copy\nimport datetime as dt\nimport decimal\nimport inspect\nimport json\nimport uuid\nimport warnings\nimport functools\n\nfrom marshmallow import base, fields, utils, class_registry, marshalling\nfrom marshmallow.compat import (with_metaclass, iteritems, text_type,\n                                binary_type, Mapping, OrderedDict)\nfrom marshmallow.exceptions import ValidationError",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 498,
+          "line_count": 18,
+          "start_line_no": 0,
+          "end_line_no": 17,
+          "node_count": 15
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.5795148611068726,
+        "content": "from marshmallow.warnings import unused_and_removed_in_ma3\n\n\ndateutil_available = False\ntry:\n    from dateutil import parser\n    dateutil_available = True\nexcept ImportError:\n    dateutil_available = False\n\nclass _Missing(object):\n\n    def __bool__(self):\n        return False\n\n    __nonzero__ = __bool__  # PY2 compat\n\n    def __copy__(self):\n        return self\n\n    def __deepcopy__(self, _):\n        return self\n\n    def __repr__(self):\n        return '<marshmallow.missing>'\n\n\n# Singleton value that indicates that a field's value is missing from input\n# dict passed to :meth:`Schema.load`. If the field's value is not required,",
+        "file_path": "src/marshmallow/utils.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "src/marshmallow/utils.py",
+          "chunk_size": 489,
+          "line_count": 29,
+          "start_line_no": 18,
+          "end_line_no": 46,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5739642381668091,
+        "content": "    def _add_to_schema(self, field_name, schema):\n        \"\"\"Update field with values from its parent schema. Called by\n            :meth:`__set_field_attrs <marshmallow.Schema.__set_field_attrs>`.\n\n        :param str field_name: Field name set in schema.\n        :param Schema schema: Parent schema.\n        \"\"\"\n        self.parent = self.parent or schema\n        self.name = self.name or field_name\n\n    def _serialize(self, value, attr, obj):",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 13,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 331,
+          "line_count": 11,
+          "start_line_no": 270,
+          "end_line_no": 280,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5674457550048828,
+        "content": "    def handle_error(self, error, data):\n        \"\"\"Custom error handler function for the schema.\n\n        :param ValidationError error: The `ValidationError` raised during (de)serialization.\n        :param data: The original input data.\n\n        .. versionadded:: 2.0.0\n        \"\"\"\n        pass\n\n    def get_attribute(self, attr, obj, default):\n        \"\"\"Defines how to pull values from an object to serialize.\n\n        .. versionadded:: 2.0.0\n        \"\"\"\n        return utils.get_value(attr, obj, default)\n\n    ##### Handler decorators (deprecated) #####",
+        "file_path": "src/marshmallow/schema.py",
+        "chunk_index": 26,
+        "metadata": {
+          "filepath": "src/marshmallow/schema.py",
+          "chunk_size": 403,
+          "line_count": 18,
+          "start_line_no": 399,
+          "end_line_no": 416,
+          "node_count": 3
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5670526027679443,
+        "content": "# -*- coding: utf-8 -*-\n\"\"\"Field classes for various types of data.\"\"\"\n\nfrom __future__ import absolute_import, unicode_literals\n\nimport copy\nimport datetime as dt\nimport uuid\nimport warnings\nimport decimal\n\nfrom marshmallow import validate, utils, class_registry\nfrom marshmallow.base import FieldABC, SchemaABC\nfrom marshmallow.utils import missing as missing_\nfrom marshmallow.compat import text_type, basestring, Mapping\nfrom marshmallow.exceptions import ValidationError\nfrom marshmallow.validate import Validator",
+        "file_path": "src/marshmallow/fields.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "src/marshmallow/fields.py",
+          "chunk_size": 456,
+          "line_count": 17,
+          "start_line_no": 0,
+          "end_line_no": 16,
+          "node_count": 14
+        }
+      }
+    ]
+  },
+  "pylint-dev__astroid-1978": {
+    "query": "Deprecation warnings from numpy\n### Steps to reproduce\r\n\r\n1. Run pylint over the following test case:\r\n\r\n```\r\n\"\"\"Test case\"\"\"\r\n\r\nimport numpy as np\r\nvalue = np.random.seed(1234)\r\n```\r\n\r\n### Current behavior\r\n```\r\n/home/bje/source/nemo/myenv/lib/python3.10/site-packages/astroid/raw_building.py:470: FutureWarning: In the future `np.long` will be defined as the corresponding NumPy scalar.  (This may have returned Python scalars in past versions.\r\n  getattr(sys.modules[modname], name)\r\n/home/bje/source/nemo/myenv/lib/python3.10/site-packages/astroid/raw_building.py:470: FutureWarning: In the future `np.long` will be defined as the corresponding NumPy scalar.  (This may have returned Python scalars in past versions.\r\n  getattr(sys.modules[modname], name)\r\n```\r\n\r\n### Expected behavior\r\nThere should be no future warnings.\r\n\r\n### python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\" output\r\n2.12.13\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6098350286483765,
+        "content": "NUMPY_VERSION_TYPE_HINTS_SUPPORT = (\"1\", \"20\", \"0\")\n\n\ndef numpy_supports_type_hints() -> bool:\n    \"\"\"Returns True if numpy supports type hints.\"\"\"\n    np_ver = _get_numpy_version()\n    return np_ver and np_ver > NUMPY_VERSION_TYPE_HINTS_SUPPORT\n\n\ndef _get_numpy_version() -> tuple[str, str, str]:\n    \"\"\"\n    Return the numpy version number if numpy can be imported.\n\n    Otherwise returns ('0', '0', '0')\n    \"\"\"\n    try:\n        import numpy  # pylint: disable=import-outside-toplevel\n\n        return tuple(numpy.version.version.split(\".\"))\n    except (ImportError, AttributeError):\n        return (\"0\", \"0\", \"0\")",
+        "file_path": "astroid/brain/brain_numpy_utils.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_utils.py",
+          "chunk_size": 487,
+          "line_count": 21,
+          "start_line_no": 13,
+          "end_line_no": 33,
+          "node_count": 3
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.5811781883239746,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n\"\"\"Astroid hooks for numpy.core.numeric module.\"\"\"\n\nimport functools\n\nfrom astroid.brain.brain_numpy_utils import infer_numpy_member, looks_like_numpy_member\nfrom astroid.brain.helpers import register_module_extender\nfrom astroid.builder import parse\nfrom astroid.inference_tip import inference_tip",
+        "file_path": "astroid/brain/brain_numpy_core_numeric.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_core_numeric.py",
+          "chunk_size": 487,
+          "line_count": 12,
+          "start_line_no": 0,
+          "end_line_no": 11,
+          "node_count": 9
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.5800803899765015,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n# pylint: disable=unused-import\n\nimport warnings",
+        "file_path": "astroid/node_classes.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/node_classes.py",
+          "chunk_size": 257,
+          "line_count": 7,
+          "start_line_no": 0,
+          "end_line_no": 6,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.575924277305603,
+        "content": "    def deprecate_arguments(\n        astroid_version: str = \"3.0\", **arguments: str\n    ) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:\n        \"\"\"Passthrough decorator to improve performance if DeprecationWarnings are\n        disabled.\n        \"\"\"\n\n        def deco(func: Callable[_P, _R]) -> Callable[_P, _R]:\n            \"\"\"Decorator function.\"\"\"\n            return func\n\n        return deco",
+        "file_path": "astroid/decorators.py",
+        "chunk_index": 19,
+        "metadata": {
+          "filepath": "astroid/decorators.py",
+          "chunk_size": 281,
+          "line_count": 12,
+          "start_line_no": 275,
+          "end_line_no": 286,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.5755904912948608,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n# Note: starting with version 1.18 numpy module has `__getattr__` method which prevent\n# `pylint` to emit `no-member` message for all numpy's attributes. (see pylint's module\n# typecheck in `_emit_no_member` function)\n\n\"\"\"Astroid hooks for numpy.core.umath module.\"\"\"\nfrom astroid.brain.helpers import register_module_extender",
+        "file_path": "astroid/brain/brain_numpy_core_umath.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_core_umath.py",
+          "chunk_size": 500,
+          "line_count": 10,
+          "start_line_no": 0,
+          "end_line_no": 9,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.5748214721679688,
+        "content": "    def deprecate_arguments(\n        astroid_version: str = \"3.0\", **arguments: str\n    ) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:\n        \"\"\"Decorator which emits a DeprecationWarning if any arguments specified\n        are passed.\n\n        Arguments should be a key-value mapping, with the key being the argument to check\n        and the value being a string that explains what to do instead of passing the argument.\n\n        To improve performance, only used when DeprecationWarnings other than\n        the default one are enabled.\n        \"\"\"\n\n        def deco(func: Callable[_P, _R]) -> Callable[_P, _R]:\n            @functools.wraps(func)",
+        "file_path": "astroid/decorators.py",
+        "chunk_index": 16,
+        "metadata": {
+          "filepath": "astroid/decorators.py",
+          "chunk_size": 481,
+          "line_count": 15,
+          "start_line_no": 223,
+          "end_line_no": 237,
+          "node_count": 14
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.5736141800880432,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n# TODO(hippo91) : correct the methods signature.\n\n\"\"\"Astroid hooks for numpy.core.numerictypes module.\"\"\"\nfrom astroid.brain.brain_numpy_utils import numpy_supports_type_hints\nfrom astroid.brain.helpers import register_module_extender\nfrom astroid.builder import parse\nfrom astroid.manager import AstroidManager",
+        "file_path": "astroid/brain/brain_numpy_core_numerictypes.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_core_numerictypes.py",
+          "chunk_size": 497,
+          "line_count": 11,
+          "start_line_no": 0,
+          "end_line_no": 10,
+          "node_count": 9
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5639985799789429,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n\"\"\"Astroid hooks for numpy.core.multiarray module.\"\"\"\n\nimport functools\n\nfrom astroid.brain.brain_numpy_utils import infer_numpy_member, looks_like_numpy_member\nfrom astroid.brain.helpers import register_module_extender\nfrom astroid.builder import parse\nfrom astroid.inference_tip import inference_tip",
+        "file_path": "astroid/brain/brain_numpy_core_multiarray.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_core_multiarray.py",
+          "chunk_size": 490,
+          "line_count": 12,
+          "start_line_no": 0,
+          "end_line_no": 11,
+          "node_count": 9
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5593001842498779,
+        "content": "register_module_extender(\n    AstroidManager(), \"numpy.core.numeric\", numpy_core_numeric_transform\n)\n\n\nMETHODS_TO_BE_INFERRED = {\n    \"ones\": \"\"\"def ones(shape, dtype=None, order='C'):\n            return numpy.ndarray([0, 0])\"\"\"\n}\n\n\nfor method_name, function_src in METHODS_TO_BE_INFERRED.items():\n    inference_function = functools.partial(infer_numpy_member, function_src)\n    AstroidManager().register_transform(\n        Attribute,\n        inference_tip(inference_function),\n        functools.partial(looks_like_numpy_member, method_name),\n    )",
+        "file_path": "astroid/brain/brain_numpy_core_numeric.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_core_numeric.py",
+          "chunk_size": 457,
+          "line_count": 18,
+          "start_line_no": 28,
+          "end_line_no": 45,
+          "node_count": 3
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5559343695640564,
+        "content": "# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n# Copyright (c) https://github.com/PyCQA/astroid/blob/main/CONTRIBUTORS.txt\n\n\"\"\"Different utilities for the numpy brains.\"\"\"\n\nfrom __future__ import annotations\n\nfrom astroid.builder import extract_node\nfrom astroid.context import InferenceContext\nfrom astroid.nodes.node_classes import Attribute, Import, Name, NodeNG\n\n# Class subscript is available in numpy starting with version 1.20.0",
+        "file_path": "astroid/brain/brain_numpy_utils.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_numpy_utils.py",
+          "chunk_size": 487,
+          "line_count": 13,
+          "start_line_no": 0,
+          "end_line_no": 12,
+          "node_count": 9
+        }
+      }
+    ]
+  },
+  "pylint-dev__astroid-1333": {
+    "query": "astroid 2.9.1 breaks pylint with missing __init__.py: F0010: error while code parsing: Unable to load file __init__.py\n### Steps to reproduce\r\n> Steps provided are for Windows 11, but initial problem found in Ubuntu 20.04\r\n\r\n> Update 2022-01-04: Corrected repro steps and added more environment details\r\n\r\n1. Set up simple repo with following structure (all files can be empty):\r\n```\r\nroot_dir/\r\n|--src/\r\n|----project/ # Notice the missing __init__.py\r\n|------file.py # It can be empty, but I added `import os` at the top\r\n|----__init__.py\r\n```\r\n2. Open a command prompt\r\n3. `cd root_dir`\r\n4. `python -m venv venv`\r\n5. `venv/Scripts/activate`\r\n6. `pip install pylint astroid==2.9.1` # I also repro'd on the latest, 2.9.2\r\n7. `pylint src/project` # Updated from `pylint src`\r\n8. Observe failure:\r\n```\r\nsrc\\project\\__init__.py:1:0: F0010: error while code parsing: Unable to load file src\\project\\__init__.py:\r\n```\r\n\r\n### Current behavior\r\nFails with `src\\project\\__init__.py:1:0: F0010: error while code parsing: Unable to load file src\\project\\__init__.py:`\r\n\r\n### Expected behavior\r\nDoes not fail with error.\r\n> If you replace step 6 with `pip install pylint astroid==2.9.0`, you get no failure with an empty output - since no files have content\r\n\r\n### `python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"` output\r\n2.9.1\r\n\r\n`python 3.9.1`\r\n`pylint 2.12.2 `\r\n\r\n\r\n\r\nThis issue has been observed with astroid `2.9.1` and `2.9.2`\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6743748784065247,
+        "content": "# Copyright (c) 2021 grayjk <grayjk@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Copyright (c) 2021 Andrew Haigh <hello@nelf.in>\n# Copyright (c) 2021 DudeNr33 <3929834+DudeNr33@users.noreply.github.com>\n# Copyright (c) 2021 pre-commit-ci[bot] <bot@noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/manager.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/manager.py",
+          "chunk_size": 423,
+          "line_count": 8,
+          "start_line_no": 17,
+          "end_line_no": 24,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6728572845458984,
+        "content": "# Copyright (c) 2021 pre-commit-ci[bot] <bot@noreply.github.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 David Liu <david@cs.toronto.edu>\n# Copyright (c) 2021 doranid <ddandd@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Copyright (c) 2021 Andrew Haigh <hello@nelf.in>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/bases.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/bases.py",
+          "chunk_size": 481,
+          "line_count": 9,
+          "start_line_no": 17,
+          "end_line_no": 25,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6668763160705566,
+        "content": "# Copyright (c) 2020 Felix Mölder <felix.moelder@uni-due.de>\n# Copyright (c) 2020 Michael <michael-k@users.noreply.github.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n\n__version__ = \"2.10.0-dev0\"\nversion = __version__",
+        "file_path": "astroid/__pkginfo__.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/__pkginfo__.py",
+          "chunk_size": 430,
+          "line_count": 10,
+          "start_line_no": 18,
+          "end_line_no": 27,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.665623664855957,
+        "content": "# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/__init__.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/__init__.py",
+          "chunk_size": 408,
+          "line_count": 7,
+          "start_line_no": 9,
+          "end_line_no": 15,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6639811992645264,
+        "content": "# Copyright (c) 2019 Philipp Hörist <philipp@hoerist.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_gi.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/brain/brain_gi.py",
+          "chunk_size": 459,
+          "line_count": 8,
+          "start_line_no": 9,
+          "end_line_no": 16,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6633169651031494,
+        "content": "# Copyright (c) 2015-2016, 2018, 2020 Claudiu Popa <pcmanticore@gmail.com>\n# Copyright (c) 2015 raylu <lurayl@gmail.com>\n# Copyright (c) 2016 Ceridwen <ceridwenv@gmail.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_dateutil.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_dateutil.py",
+          "chunk_size": 482,
+          "line_count": 9,
+          "start_line_no": 0,
+          "end_line_no": 8,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6609638333320618,
+        "content": "# Copyright (c) 2016, 2018-2020 Claudiu Popa <pcmanticore@gmail.com>\n# Copyright (c) 2017 Łukasz Rogalski <rogalski.91@gmail.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_threading.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_threading.py",
+          "chunk_size": 445,
+          "line_count": 8,
+          "start_line_no": 0,
+          "end_line_no": 7,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.657720685005188,
+        "content": "# Copyright (c) 2021 Alphadelta14 <alpha@alphaservcomputing.solutions>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/objects.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/objects.py",
+          "chunk_size": 277,
+          "line_count": 5,
+          "start_line_no": 8,
+          "end_line_no": 12,
+          "node_count": 4
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.656068742275238,
+        "content": "# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/nodes/__init__.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/nodes/__init__.py",
+          "chunk_size": 350,
+          "line_count": 6,
+          "start_line_no": 9,
+          "end_line_no": 14,
+          "node_count": 5
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6547567844390869,
+        "content": "# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/interpreter/objectmodel.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/interpreter/objectmodel.py",
+          "chunk_size": 290,
+          "line_count": 4,
+          "start_line_no": 9,
+          "end_line_no": 12,
+          "node_count": 4
+        }
+      }
+    ]
+  },
+  "pylint-dev__astroid-1196": {
+    "query": "getitem does not infer the actual unpacked value\nWhen trying to call `Dict.getitem()` on a context where we have a dict unpacking of anything beside a real dict, astroid currently raises an `AttributeError: 'getitem'`, which has 2 problems:\r\n\r\n- The object might be a reference against something constant, this pattern is usually seen when we have different sets of dicts that extend each other, and all of their values are inferrable. \r\n- We can have something that is uninferable, but in that case instead of an `AttributeError` I think it makes sense to raise the usual `AstroidIndexError` which is supposed to be already handled by the downstream.\r\n\r\n\r\nHere is a short reproducer;\r\n\r\n```py\r\nfrom astroid import parse\r\n\r\n\r\nsource = \"\"\"\r\nX = {\r\n    'A': 'B'\r\n}\r\n\r\nY = {\r\n    **X\r\n}\r\n\r\nKEY = 'A'\r\n\"\"\"\r\n\r\ntree = parse(source)\r\n\r\nfirst_dict = tree.body[0].value\r\nsecond_dict = tree.body[1].value\r\nkey = tree.body[2].value\r\n\r\nprint(f'{first_dict.getitem(key).value = }')\r\nprint(f'{second_dict.getitem(key).value = }')\r\n\r\n\r\n```\r\n\r\nThe current output;\r\n\r\n```\r\n $ python t1.py                                                                                                 3ms\r\nfirst_dict.getitem(key).value = 'B'\r\nTraceback (most recent call last):\r\n  File \"/home/isidentical/projects/astroid/t1.py\", line 23, in <module>\r\n    print(f'{second_dict.getitem(key).value = }')\r\n  File \"/home/isidentical/projects/astroid/astroid/nodes/node_classes.py\", line 2254, in getitem\r\n    return value.getitem(index, context)\r\nAttributeError: 'Name' object has no attribute 'getitem'\r\n```\r\n\r\nExpeceted output;\r\n```\r\n $ python t1.py                                                                                                 4ms\r\nfirst_dict.getitem(key).value = 'B'\r\nsecond_dict.getitem(key).value = 'B'\r\n\r\n```\r\n\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6712473630905151,
+        "content": "def _infer_map(node, context):\n    \"\"\"Infer all values based on Dict.items\"\"\"\n    values = {}\n    for name, value in node.items:\n        if isinstance(name, nodes.DictUnpack):\n            double_starred = helpers.safe_infer(value, context)\n            if not double_starred:\n                raise InferenceError\n            if not isinstance(double_starred, nodes.Dict):\n                raise InferenceError(node=node, context=context)\n            unpack_items = _infer_map(double_starred, context)\n            values = _update_with_replacement(values, unpack_items)",
+        "file_path": "astroid/inference.py",
+        "chunk_index": 11,
+        "metadata": {
+          "filepath": "astroid/inference.py",
+          "chunk_size": 411,
+          "line_count": 12,
+          "start_line_no": 145,
+          "end_line_no": 156,
+          "node_count": 15
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6670578718185425,
+        "content": "    def getitem(self, index, context=None):\n        new_context = bind_context_to_node(context, self)\n        if not context:\n            context = new_context\n        method = next(self.igetattr(\"__getitem__\", context=context), None)\n        # Create a new CallContext for providing index as an argument.\n        new_context.callcontext = CallContext(args=[index], callee=method)\n        if not isinstance(method, BoundMethod):\n            raise InferenceError(\n                \"Could not find __getitem__ for {node!r}.\", node=self, context=context\n            )",
+        "file_path": "astroid/bases.py",
+        "chunk_index": 22,
+        "metadata": {
+          "filepath": "astroid/bases.py",
+          "chunk_size": 411,
+          "line_count": 11,
+          "start_line_no": 320,
+          "end_line_no": 330,
+          "node_count": 10
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6612676382064819,
+        "content": "    def getitem(self, index, context=None):\n        \"\"\"Return the inference of a subscript.\n\n        This is basically looking up the method in the metaclass and calling it.\n\n        :returns: The inferred value of a subscript to this class.\n        :rtype: NodeNG\n\n        :raises AstroidTypeError: If this class does not define a\n            ``__getitem__`` method.\n        \"\"\"\n        try:\n            methods = lookup(self, \"__getitem__\")\n        except AttributeInferenceError as exc:",
+        "file_path": "astroid/nodes/scoped_nodes/scoped_nodes.py",
+        "chunk_index": 162,
+        "metadata": {
+          "filepath": "astroid/nodes/scoped_nodes/scoped_nodes.py",
+          "chunk_size": 339,
+          "line_count": 14,
+          "start_line_no": 2720,
+          "end_line_no": 2733,
+          "node_count": 11
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6607338786125183,
+        "content": "def infer_getattr(node, context=None):\n    \"\"\"Understand getattr calls\n\n    If one of the arguments is an Uninferable object, then the\n    result will be an Uninferable object. Otherwise, the normal attribute\n    lookup will be done.\n    \"\"\"\n    obj, attr = _infer_getattr_args(node, context)\n    if (\n        obj is util.Uninferable\n        or attr is util.Uninferable\n        or not hasattr(obj, \"igetattr\")\n    ):\n        return util.Uninferable",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 31,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 331,
+          "line_count": 14,
+          "start_line_no": 460,
+          "end_line_no": 473,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6414061784744263,
+        "content": "    def getitem(self, index, context=None):\n        \"\"\"Get an item from this node if subscriptable.\n\n        :param index: The node to use as a subscript index.\n        :type index: Const or Slice\n\n        :raises AstroidTypeError: When the given index cannot be used as a\n            subscript index, or if this node is not subscriptable.\n        \"\"\"\n        if isinstance(index, Const):\n            index_value = index.value\n        elif isinstance(index, Slice):\n            index_value = _infer_slice(index, context=context)\n\n        else:\n            raise AstroidTypeError(\n                f\"Could not use type {type(index)} as subscript index\"\n            )",
+        "file_path": "astroid/nodes/node_classes.py",
+        "chunk_index": 122,
+        "metadata": {
+          "filepath": "astroid/nodes/node_classes.py",
+          "chunk_size": 445,
+          "line_count": 18,
+          "start_line_no": 1941,
+          "end_line_no": 1958,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6372414827346802,
+        "content": "def infer_subscript(self, context=None):\n    \"\"\"Inference for subscripts\n\n    We're understanding if the index is a Const\n    or a slice, passing the result of inference\n    to the value's `getitem` method, which should\n    handle each supported index type accordingly.\n    \"\"\"\n\n    found_one = False\n    for value in self.value.infer(context):\n        if value is util.Uninferable:\n            yield util.Uninferable\n            return None",
+        "file_path": "astroid/inference.py",
+        "chunk_index": 30,
+        "metadata": {
+          "filepath": "astroid/inference.py",
+          "chunk_size": 325,
+          "line_count": 14,
+          "start_line_no": 347,
+          "end_line_no": 360,
+          "node_count": 12
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6331126093864441,
+        "content": "def _infer_getattr_args(node, context):\n    if len(node.args) not in (2, 3):\n        # Not a valid getattr call.\n        raise UseInferenceDefault\n\n    try:\n        obj = next(node.args[0].infer(context=context))\n        attr = next(node.args[1].infer(context=context))\n    except (InferenceError, StopIteration) as exc:\n        raise UseInferenceDefault from exc\n\n    if obj is util.Uninferable or attr is util.Uninferable:\n        # If one of the arguments is something we can't infer,\n        # then also make the result of the getattr call something\n        # which is unknown.\n        return util.Uninferable, util.Uninferable",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 29,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 472,
+          "line_count": 16,
+          "start_line_no": 436,
+          "end_line_no": 451,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.632440447807312,
+        "content": "def infer_attribute(self, context=None):\n    \"\"\"infer an Attribute node by using getattr on the associated object\"\"\"\n    for owner in self.expr.infer(context):\n        if owner is util.Uninferable:\n            yield owner\n            continue\n\n        if not context:\n            context = InferenceContext()\n        else:\n            context = copy_context(context)\n\n        old_boundnode = context.boundnode\n        try:\n            context.boundnode = owner\n            yield from owner.igetattr(self.attrname, context)\n        except (\n            AttributeInferenceError,\n            InferenceError,\n            AttributeError,\n        ):\n            pass\n        finally:\n            context.boundnode = old_boundnode\n    return dict(node=self, context=context)",
+        "file_path": "astroid/inference.py",
+        "chunk_index": 27,
+        "metadata": {
+          "filepath": "astroid/inference.py",
+          "chunk_size": 498,
+          "line_count": 25,
+          "start_line_no": 294,
+          "end_line_no": 318,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.6312252879142761,
+        "content": "    def _unpack_keywords(self, keywords, context=None):\n        values = {}\n        context = context or InferenceContext()\n        context.extra_context = self.argument_context_map\n        for name, value in keywords:\n            if name is None:\n                # Then it's an unpacking operation (**)\n                try:\n                    inferred = next(value.infer(context=context))\n                except InferenceError:\n                    values[name] = Uninferable\n                    continue\n                except StopIteration:\n                    continue\n\n                if not isinstance(inferred, nodes.Dict):\n                    # Not something we can work with.\n                    values[name] = Uninferable\n                    continue",
+        "file_path": "astroid/arguments.py",
+        "chunk_index": 6,
+        "metadata": {
+          "filepath": "astroid/arguments.py",
+          "chunk_size": 433,
+          "line_count": 19,
+          "start_line_no": 83,
+          "end_line_no": 101,
+          "node_count": 18
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6267203092575073,
+        "content": "    def igetattr(self, name, context=None):\n        \"\"\"Inferred getattr, which returns an iterator of inferred statements.\"\"\"\n        try:\n            return bases._infer_stmts(self.getattr(name, context), context, frame=self)\n        except AttributeInferenceError as error:\n            raise InferenceError(\n                str(error), target=self, attribute=name, context=context\n            ) from error",
+        "file_path": "astroid/nodes/scoped_nodes/scoped_nodes.py",
+        "chunk_index": 92,
+        "metadata": {
+          "filepath": "astroid/nodes/scoped_nodes/scoped_nodes.py",
+          "chunk_size": 296,
+          "line_count": 8,
+          "start_line_no": 1579,
+          "end_line_no": 1586,
+          "node_count": 1
+        }
+      }
+    ]
+  },
+  "pylint-dev__astroid-1866": {
+    "query": "\"TypeError: unsupported format string passed to NoneType.__format__\" while running type inference in version 2.12.x\n### Steps to reproduce\r\n\r\nI have no concise reproducer. Exception happens every time I run pylint on some internal code, with astroid 2.12.10 and 2.12.12 (debian bookworm). It does _not_ happen with earlier versions of astroid (not with version 2.9). The pylinted code itself is \"valid\", it runs in production here.\r\n\r\n### Current behavior\r\n\r\nWhen running pylint on some code, I get this exception:\r\n```\r\nTraceback (most recent call last):\r\n  File \"/usr/lib/python3/dist-packages/pylint/utils/ast_walker.py\", line 90, in walk\r\n    callback(astroid)\r\n  File \"/usr/lib/python3/dist-packages/pylint/checkers/classes/special_methods_checker.py\", line 183, in visit_functiondef\r\n    inferred = _safe_infer_call_result(node, node)\r\n  File \"/usr/lib/python3/dist-packages/pylint/checkers/classes/special_methods_checker.py\", line 42, in _safe_infer_call_result\r\n    value = next(inferit)\r\n  File \"/usr/lib/python3/dist-packages/astroid/nodes/scoped_nodes/scoped_nodes.py\", line 1749, in infer_call_result\r\n    yield from returnnode.value.infer(context)\r\n  File \"/usr/lib/python3/dist-packages/astroid/nodes/node_ng.py\", line 159, in infer\r\n    results = list(self._explicit_inference(self, context, **kwargs))\r\n  File \"/usr/lib/python3/dist-packages/astroid/inference_tip.py\", line 45, in _inference_tip_cached\r\n    result = _cache[func, node] = list(func(*args, **kwargs))\r\n  File \"/usr/lib/python3/dist-packages/astroid/brain/brain_builtin_inference.py\", line 956, in _infer_str_format_call\r\n    formatted_string = format_template.format(*pos_values, **keyword_values)\r\nTypeError: unsupported format string passed to NoneType.__format__\r\n```\r\n\r\n### Expected behavior\r\n\r\nTypeError exception should not happen\r\n\r\n### `python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"` output\r\n\r\n2.12.10,\r\n2.12.12\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6751132011413574,
+        "content": "def _is_str_format_call(node: nodes.Call) -> bool:\n    \"\"\"Catch calls to str.format().\"\"\"\n    if not isinstance(node.func, nodes.Attribute) or not node.func.attrname == \"format\":\n        return False\n\n    if isinstance(node.func.expr, nodes.Name):\n        value = helpers.safe_infer(node.func.expr)\n    else:\n        value = node.func.expr\n\n    return isinstance(value, nodes.Const) and isinstance(value.value, str)",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 65,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 334,
+          "line_count": 11,
+          "start_line_no": 913,
+          "end_line_no": 923,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6576285362243652,
+        "content": "def _infer_str_format_call(\n    node: nodes.Call, context: InferenceContext | None = None\n) -> Iterator[nodes.Const | type[util.Uninferable]]:",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 66,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 124,
+          "line_count": 3,
+          "start_line_no": 926,
+          "end_line_no": 928,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6282206773757935,
+        "content": "def _infer_old_style_string_formatting(\n    instance: nodes.Const, other: nodes.NodeNG, context: InferenceContext\n) -> tuple[type[util.Uninferable] | nodes.Const]:",
+        "file_path": "astroid/inference.py",
+        "chunk_index": 54,
+        "metadata": {
+          "filepath": "astroid/inference.py",
+          "chunk_size": 147,
+          "line_count": 3,
+          "start_line_no": 628,
+          "end_line_no": 630,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.622888445854187,
+        "content": "def infer_str(node, context=None):\n    \"\"\"Infer str() calls\n\n    :param nodes.Call node: str() call to infer\n    :param context.InferenceContext: node context\n    :rtype nodes.Const: a Const containing an empty string\n    \"\"\"\n    call = arguments.CallSite.from_call(node, context=context)\n    if call.keyword_arguments:\n        raise UseInferenceDefault(\"TypeError: str() must take no keyword arguments\")\n    try:\n        return nodes.Const(\"\")\n    except (AstroidTypeError, InferenceError) as exc:\n        raise UseInferenceDefault(str(exc)) from exc",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 55,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 439,
+          "line_count": 14,
+          "start_line_no": 782,
+          "end_line_no": 795,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6196557283401489,
+        "content": "class AstroidTypeError(AstroidError):\n    \"\"\"Raised when a TypeError would be expected in Python code.\"\"\"\n\n    def __init__(\n        self,\n        message: str = \"\",\n        node: nodes.NodeNG | bases.Instance | None = None,\n        index: nodes.Subscript | None = None,\n        context: InferenceContext | None = None,\n        **kws: Any,\n    ) -> None:\n        self.node = node\n        self.index = index\n        self.context = context\n        super().__init__(message, **kws)\n\n\nclass AstroidValueError(AstroidError):\n    \"\"\"Raised when a ValueError would be expected in Python code.\"\"\"",
+        "file_path": "astroid/exceptions.py",
+        "chunk_index": 28,
+        "metadata": {
+          "filepath": "astroid/exceptions.py",
+          "chunk_size": 423,
+          "line_count": 19,
+          "start_line_no": 360,
+          "end_line_no": 378,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.5932271480560303,
+        "content": "def infer_typing_cast(\n    node: Call, ctx: context.InferenceContext | None = None\n) -> Iterator[NodeNG]:\n    \"\"\"Infer call to cast() returning same type as casted-from var\"\"\"\n    if not isinstance(node.func, (Name, Attribute)):\n        raise UseInferenceDefault\n\n    try:\n        func = next(node.func.infer(context=ctx))\n    except (InferenceError, StopIteration) as exc:\n        raise UseInferenceDefault from exc\n    if (\n        not isinstance(func, FunctionDef)\n        or func.qname() != \"typing.cast\"\n        or len(node.args) != 2\n    ):\n        raise UseInferenceDefault\n\n    return node.args[1].infer(context=ctx)",
+        "file_path": "astroid/brain/brain_typing.py",
+        "chunk_index": 31,
+        "metadata": {
+          "filepath": "astroid/brain/brain_typing.py",
+          "chunk_size": 474,
+          "line_count": 19,
+          "start_line_no": 383,
+          "end_line_no": 401,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.586798906326294,
+        "content": "def infer_type(node, context=None):\n    \"\"\"Understand the one-argument form of *type*.\"\"\"\n    if len(node.args) != 1:\n        raise UseInferenceDefault\n\n    return helpers.object_type(node.args[0], context)",
+        "file_path": "astroid/brain/brain_builtin_inference.py",
+        "chunk_index": 39,
+        "metadata": {
+          "filepath": "astroid/brain/brain_builtin_inference.py",
+          "chunk_size": 168,
+          "line_count": 6,
+          "start_line_no": 596,
+          "end_line_no": 601,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.5838034749031067,
+        "content": "class Unknown(_base_nodes.AssignTypeNode):\n    \"\"\"This node represents a node in a constructed AST where\n    introspection is not possible.  At the moment, it's only used in\n    the args attribute of FunctionDef nodes where function signature\n    introspection failed.\n    \"\"\"\n\n    name = \"Unknown\"\n\n    def qname(self) -> Literal[\"Unknown\"]:\n        return \"Unknown\"\n\n    def _infer(self, context=None, **kwargs):\n        \"\"\"Inference on an Unknown node immediately terminates.\"\"\"\n        yield util.Uninferable",
+        "file_path": "astroid/nodes/node_classes.py",
+        "chunk_index": 299,
+        "metadata": {
+          "filepath": "astroid/nodes/node_classes.py",
+          "chunk_size": 396,
+          "line_count": 15,
+          "start_line_no": 4912,
+          "end_line_no": 4926,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.5808693766593933,
+        "content": "        \"\"\"Try to infer what type.__new__(mcs, name, bases, attrs) returns.\n\n        In order for such call to be valid, the metaclass needs to be\n        a subtype of ``type``, the name needs to be a string, the bases\n        needs to be a tuple of classes\n        \"\"\"\n        # pylint: disable=import-outside-toplevel; circular import\n        from astroid.nodes import Pass\n\n        # Verify the metaclass\n        try:\n            mcs = next(caller.args[0].infer(context=context))\n        except StopIteration as e:\n            raise InferenceError(context=context) from e\n        if mcs.__class__.__name__ != \"ClassDef\":\n            # Not a valid first argument.\n            return None",
+        "file_path": "astroid/bases.py",
+        "chunk_index": 35,
+        "metadata": {
+          "filepath": "astroid/bases.py",
+          "chunk_size": 472,
+          "line_count": 17,
+          "start_line_no": 488,
+          "end_line_no": 504,
+          "node_count": 6
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.5784280300140381,
+        "content": "# The problem is that FormattedValue.value, which is a Name node,\n# has wrong line numbers, usually 1. This creates problems for pylint,\n# which expects correct line numbers for things such as message control.\nAstroidManager().register_transform(FormattedValue, _transform_formatted_value)",
+        "file_path": "astroid/brain/brain_fstrings.py",
+        "chunk_index": 4,
+        "metadata": {
+          "filepath": "astroid/brain/brain_fstrings.py",
+          "chunk_size": 253,
+          "line_count": 4,
+          "start_line_no": 44,
+          "end_line_no": 47,
+          "node_count": 4
+        }
+      }
+    ]
+  },
+  "pylint-dev__astroid-1268": {
+    "query": "'AsStringVisitor' object has no attribute 'visit_unknown'\n```python\r\n>>> import astroid\r\n>>> astroid.nodes.Unknown().as_string()\r\nTraceback (most recent call last):\r\n  File \"<stdin>\", line 1, in <module>\r\n  File \"/Users/tusharsadhwani/code/marvin-python/venv/lib/python3.9/site-packages/astroid/nodes/node_ng.py\", line 609, in as_string\r\n    return AsStringVisitor()(self)\r\n  File \"/Users/tusharsadhwani/code/marvin-python/venv/lib/python3.9/site-packages/astroid/nodes/as_string.py\", line 56, in __call__\r\n    return node.accept(self).replace(DOC_NEWLINE, \"\\n\")\r\n  File \"/Users/tusharsadhwani/code/marvin-python/venv/lib/python3.9/site-packages/astroid/nodes/node_ng.py\", line 220, in accept\r\n    func = getattr(visitor, \"visit_\" + self.__class__.__name__.lower())\r\nAttributeError: 'AsStringVisitor' object has no attribute 'visit_unknown'\r\n>>> \r\n```\r\n### `python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"` output\r\n\r\n2.8.6-dev0\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6900746822357178,
+        "content": "# Copyright (c) 2020 Felix Mölder <felix.moelder@uni-due.de>\n# Copyright (c) 2020 Michael <michael-k@users.noreply.github.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE\n\n__version__ = \"2.9.0-dev0\"\nversion = __version__",
+        "file_path": "astroid/__pkginfo__.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/__pkginfo__.py",
+          "chunk_size": 429,
+          "line_count": 10,
+          "start_line_no": 18,
+          "end_line_no": 27,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6731195449829102,
+        "content": "import pprint\nimport sys\nimport typing\nimport warnings\nfrom functools import singledispatch as _singledispatch\nfrom typing import (\n    TYPE_CHECKING,\n    ClassVar,\n    Iterator,\n    List,\n    Optional,\n    Tuple,\n    Type,\n    TypeVar,\n    Union,\n    cast,\n    overload,\n)\n\nfrom astroid import decorators, util\nfrom astroid.exceptions import (\n    AstroidError,\n    InferenceError,\n    ParentMissingError,\n    StatementMissing,\n    UseInferenceDefault,\n)\nfrom astroid.manager import AstroidManager\nfrom astroid.nodes.as_string import AsStringVisitor\nfrom astroid.nodes.const import OP_PRECEDENCE",
+        "file_path": "astroid/nodes/node_ng.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/nodes/node_ng.py",
+          "chunk_size": 475,
+          "line_count": 30,
+          "start_line_no": 0,
+          "end_line_no": 29,
+          "node_count": 11
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.643524169921875,
+        "content": "class AsStringVisitor:\n    \"\"\"Visitor to render an Astroid node as a valid python code string\"\"\"\n\n    def __init__(self, indent=\"    \"):\n        self.indent = indent\n\n    def __call__(self, node):\n        \"\"\"Makes this visitor behave as a simple function\"\"\"\n        return node.accept(self).replace(DOC_NEWLINE, \"\\n\")\n\n    def _docs_dedent(self, doc):\n        \"\"\"Stop newlines in docs being indented by self._stmt_list\"\"\"\n        return '\\n{}\"\"\"{}\"\"\"'.format(self.indent, doc.replace(\"\\n\", DOC_NEWLINE))",
+        "file_path": "astroid/nodes/as_string.py",
+        "chunk_index": 4,
+        "metadata": {
+          "filepath": "astroid/nodes/as_string.py",
+          "chunk_size": 392,
+          "line_count": 13,
+          "start_line_no": 47,
+          "end_line_no": 59,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6356269121170044,
+        "content": "# Copyright (c) 2016, 2018-2020 Claudiu Popa <pcmanticore@gmail.com>\n# Copyright (c) 2017 Łukasz Rogalski <rogalski.91@gmail.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_threading.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_threading.py",
+          "chunk_size": 445,
+          "line_count": 8,
+          "start_line_no": 0,
+          "end_line_no": 7,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.635515570640564,
+        "content": "# Copyright (c) 2015-2016, 2018, 2020 Claudiu Popa <pcmanticore@gmail.com>\n# Copyright (c) 2015 raylu <lurayl@gmail.com>\n# Copyright (c) 2016 Ceridwen <ceridwenv@gmail.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_dateutil.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "astroid/brain/brain_dateutil.py",
+          "chunk_size": 482,
+          "line_count": 9,
+          "start_line_no": 0,
+          "end_line_no": 8,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6337869167327881,
+        "content": "# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Copyright (c) 2021 Andrew Haigh <hello@nelf.in>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/builder.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/builder.py",
+          "chunk_size": 451,
+          "line_count": 8,
+          "start_line_no": 9,
+          "end_line_no": 16,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.6336581110954285,
+        "content": "# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Copyright (c) 2021 Andrew Haigh <hello@nelf.in>\n# Copyright (c) 2021 David Liu <david@cs.toronto.edu>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/inference.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/inference.py",
+          "chunk_size": 440,
+          "line_count": 8,
+          "start_line_no": 18,
+          "end_line_no": 25,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.6336381435394287,
+        "content": "# Copyright (c) 2019 Philipp Hörist <philipp@hoerist.com>\n# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/brain/brain_gi.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/brain/brain_gi.py",
+          "chunk_size": 459,
+          "line_count": 8,
+          "start_line_no": 9,
+          "end_line_no": 16,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.630677342414856,
+        "content": "# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 David Liu <david@cs.toronto.edu>\n# Copyright (c) 2021 doranid <ddandd@gmail.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n# Copyright (c) 2021 Andrew Haigh <hello@nelf.in>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/bases.py",
+        "chunk_index": 2,
+        "metadata": {
+          "filepath": "astroid/bases.py",
+          "chunk_size": 422,
+          "line_count": 8,
+          "start_line_no": 17,
+          "end_line_no": 24,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6305357217788696,
+        "content": "# Copyright (c) 2020-2021 hippo91 <guillaume.peillex@gmail.com>\n# Copyright (c) 2021 Pierre Sassoulas <pierre.sassoulas@gmail.com>\n# Copyright (c) 2021 Daniël van Noord <13665637+DanielNoord@users.noreply.github.com>\n# Copyright (c) 2021 Marc Mueller <30130371+cdce8p@users.noreply.github.com>\n\n# Licensed under the LGPL: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html\n# For details: https://github.com/PyCQA/astroid/blob/main/LICENSE",
+        "file_path": "astroid/__init__.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "astroid/__init__.py",
+          "chunk_size": 408,
+          "line_count": 7,
+          "start_line_no": 9,
+          "end_line_no": 15,
+          "node_count": 6
+        }
+      }
+    ]
+  },
+  "pyvista__pyvista-4315": {
+    "query": "Rectilinear grid does not allow Sequences as inputs\n### Describe the bug, what's wrong, and what you expected.\r\n\r\nRectilinear grid gives an error when `Sequence`s are passed in, but `ndarray` are ok.\r\n\r\n### Steps to reproduce the bug.\r\n\r\nThis doesn't work\r\n```python\r\nimport pyvista as pv\r\npv.RectilinearGrid([0, 1], [0, 1], [0, 1])\r\n```\r\n\r\nThis works\r\n```py\r\nimport pyvista as pv\r\nimport numpy as np\r\npv.RectilinearGrid(np.ndarray([0, 1]), np.ndarray([0, 1]), np.ndarray([0, 1]))\r\n```\r\n### System Information\r\n\r\n```shell\r\n--------------------------------------------------------------------------------\r\n  Date: Wed Apr 19 20:15:10 2023 UTC\r\n\r\n                OS : Linux\r\n            CPU(s) : 2\r\n           Machine : x86_64\r\n      Architecture : 64bit\r\n       Environment : IPython\r\n        GPU Vendor : Mesa/X.org\r\n      GPU Renderer : llvmpipe (LLVM 11.0.1, 256 bits)\r\n       GPU Version : 4.5 (Core Profile) Mesa 20.3.5\r\n\r\n  Python 3.11.2 (main, Mar 23 2023, 17:12:29) [GCC 10.2.1 20210110]\r\n\r\n           pyvista : 0.38.5\r\n               vtk : 9.2.6\r\n             numpy : 1.24.2\r\n           imageio : 2.27.0\r\n            scooby : 0.7.1\r\n             pooch : v1.7.0\r\n        matplotlib : 3.7.1\r\n           IPython : 8.12.0\r\n--------------------------------------------------------------------------------\r\n```\r\n\r\n\r\n### Screenshots\r\n\r\n_No response_\n",
+    "method": "cAST",
+    "top_k": 10,
+    "results": [
+      {
+        "rank": 1,
+        "score": 0.6878546476364136,
+        "content": "\"\"\"\n.. _create_unstructured_example:\n\nCreating an Unstructured Grid\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nCreate an irregular, unstructured grid from NumPy arrays.\n\"\"\"\n\nimport numpy as np\n\nimport pyvista as pv\nfrom pyvista import CellType\n\n###############################################################################\n# An unstructured grid can be created directly from NumPy arrays.\n# This is useful when creating a grid from scratch or copying it from another\n# format.  See `vtkUnstructuredGrid <https://www.vtk.org/doc/nightly/html/classvtkUnstructuredGrid.html>`_",
+        "file_path": "examples/00-load/create-unstructured-surface.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "examples/00-load/create-unstructured-surface.py",
+          "chunk_size": 497,
+          "line_count": 18,
+          "start_line_no": 0,
+          "end_line_no": 17,
+          "node_count": 8
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.6832796931266785,
+        "content": "\"\"\"Sub-classes for vtk.vtkRectilinearGrid and vtk.vtkImageData.\"\"\"\nfrom functools import wraps\nimport pathlib\nfrom typing import Sequence, Tuple, Union\nimport warnings\n\nimport numpy as np\n\nimport pyvista\nfrom pyvista import _vtk\nfrom pyvista.core.dataset import DataSet\nfrom pyvista.core.filters import RectilinearGridFilters, UniformGridFilters, _get_output\nfrom pyvista.utilities import abstract_class, assert_empty_kwargs\nimport pyvista.utilities.helpers as helpers\nfrom pyvista.utilities.misc import PyVistaDeprecationWarning, raise_has_duplicates",
+        "file_path": "pyvista/core/grid.py",
+        "chunk_index": 0,
+        "metadata": {
+          "filepath": "pyvista/core/grid.py",
+          "chunk_size": 497,
+          "line_count": 15,
+          "start_line_no": 0,
+          "end_line_no": 14,
+          "node_count": 13
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.6803539991378784,
+        "content": "    def __init__(self, *args, check_duplicates=False, deep=False, **kwargs):\n        \"\"\"Initialize the rectilinear grid.\"\"\"\n        super().__init__()\n\n        if len(args) == 1:\n            if isinstance(args[0], _vtk.vtkRectilinearGrid):\n                if deep:\n                    self.deep_copy(args[0])\n                else:\n                    self.shallow_copy(args[0])\n            elif isinstance(args[0], (str, pathlib.Path)):\n                self._from_file(args[0], **kwargs)\n            elif isinstance(args[0], np.ndarray):\n                self._from_arrays(args[0], None, None, check_duplicates)\n            else:\n                raise TypeError(f'Type ({type(args[0])}) not understood by `RectilinearGrid`')",
+        "file_path": "pyvista/core/grid.py",
+        "chunk_index": 5,
+        "metadata": {
+          "filepath": "pyvista/core/grid.py",
+          "chunk_size": 483,
+          "line_count": 16,
+          "start_line_no": 125,
+          "end_line_no": 140,
+          "node_count": 10
+        }
+      },
+      {
+        "rank": 4,
+        "score": 0.6751937866210938,
+        "content": "    def cast_to_structured_grid(self) -> 'pyvista.StructuredGrid':\n        \"\"\"Cast this rectilinear grid to a structured grid.\n\n        Returns\n        -------\n        pyvista.StructuredGrid\n            This grid as a structured grid.\n\n        \"\"\"\n        alg = _vtk.vtkRectilinearGridToPointSet()\n        alg.SetInputData(self)\n        alg.Update()\n        return _get_output(alg)",
+        "file_path": "pyvista/core/grid.py",
+        "chunk_index": 18,
+        "metadata": {
+          "filepath": "pyvista/core/grid.py",
+          "chunk_size": 263,
+          "line_count": 13,
+          "start_line_no": 380,
+          "end_line_no": 392,
+          "node_count": 1
+        }
+      },
+      {
+        "rank": 5,
+        "score": 0.6660856008529663,
+        "content": "    def cast_to_structured_grid(self) -> 'pyvista.StructuredGrid':\n        \"\"\"Cast this uniform grid to a structured grid.\n\n        Returns\n        -------\n        pyvista.StructuredGrid\n            This grid as a structured grid.\n\n        \"\"\"\n        alg = _vtk.vtkImageToStructuredGrid()\n        alg.SetInputData(self)\n        alg.Update()\n        return _get_output(alg)\n\n    def cast_to_rectilinear_grid(self) -> 'RectilinearGrid':",
+        "file_path": "pyvista/core/grid.py",
+        "chunk_index": 34,
+        "metadata": {
+          "filepath": "pyvista/core/grid.py",
+          "chunk_size": 308,
+          "line_count": 15,
+          "start_line_no": 764,
+          "end_line_no": 778,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 6,
+        "score": 0.6640839576721191,
+        "content": "    xrng = np.array([0, 0.3, 1, 4, 5, 6, 6.2, 6.6])\n    yrng = np.linspace(-2, 2, 5)\n    zrng = [1]\n    rec_grid = pv.RectilinearGrid(xrng, yrng, zrng)\n\n    ###########################################################################\n    # structured grid\n    ang = np.linspace(0, np.pi / 2, 10)\n    r = np.linspace(6, 10, 8)\n    z = [0]\n    ang, r, z = np.meshgrid(ang, r, z)\n\n    x = r * np.sin(ang)\n    y = r * np.cos(ang)\n\n    struct_grid = pv.StructuredGrid(x[::-1], y[::-1], z[::-1])\n\n    ###########################################################################\n    # polydata",
+        "file_path": "pyvista/demos/demos.py",
+        "chunk_index": 25,
+        "metadata": {
+          "filepath": "pyvista/demos/demos.py",
+          "chunk_size": 454,
+          "line_count": 19,
+          "start_line_no": 479,
+          "end_line_no": 497,
+          "node_count": 15
+        }
+      },
+      {
+        "rank": 7,
+        "score": 0.663783073425293,
+        "content": "class RectilinearGrid(_vtk.vtkRectilinearGrid, Grid, RectilinearGridFilters):\n    \"\"\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    \"\"\"\n\n    _WRITERS = {'.vtk': _vtk.vtkRectilinearGridWriter, '.vtr': _vtk.vtkXMLRectilinearGridWriter}",
+        "file_path": "pyvista/core/grid.py",
+        "chunk_index": 4,
+        "metadata": {
+          "filepath": "pyvista/core/grid.py",
+          "chunk_size": 167,
+          "line_count": 61,
+          "start_line_no": 63,
+          "end_line_no": 123,
+          "node_count": 7
+        }
+      },
+      {
+        "rank": 8,
+        "score": 0.6609461307525635,
+        "content": "import numpy as np\n\nimport pyvista as pv",
+        "file_path": "examples/99-advanced/ray-trace-moeller.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "examples/99-advanced/ray-trace-moeller.py",
+          "chunk_size": 32,
+          "line_count": 3,
+          "start_line_no": 17,
+          "end_line_no": 19,
+          "node_count": 2
+        }
+      },
+      {
+        "rank": 9,
+        "score": 0.65541672706604,
+        "content": "import numpy as np\n\n# sphinx_gallery_thumbnail_number = 4\nimport pyvista as pv\nfrom pyvista import examples\n\n###############################################################################\nsurface = pv.Cone(direction=(0, 0, -1), height=3.0, radius=1, resolution=50, capping=False)\n\n# Make a gridded dataset\nn = 51\nxx = yy = zz = 1 - np.linspace(0, n, n) * 2 / (n - 1)\ndataset = pv.RectilinearGrid(xx, yy, zz)\n\n# Preview the problem\np = pv.Plotter()\np.add_mesh(surface, color='w', label='Surface')",
+        "file_path": "examples/01-filter/clipping-with-surface.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "examples/01-filter/clipping-with-surface.py",
+          "chunk_size": 427,
+          "line_count": 17,
+          "start_line_no": 15,
+          "end_line_no": 31,
+          "node_count": 13
+        }
+      },
+      {
+        "rank": 10,
+        "score": 0.6545329093933105,
+        "content": "from ipygany.ipygany import _grid_data_to_data_widget\nfrom ipygany.vtk_loader import get_ugrid_data\n\nimport pyvista as pv",
+        "file_path": "pyvista/jupyter/pv_ipygany.py",
+        "chunk_index": 1,
+        "metadata": {
+          "filepath": "pyvista/jupyter/pv_ipygany.py",
+          "chunk_size": 109,
+          "line_count": 4,
+          "start_line_no": 21,
+          "end_line_no": 24,
+          "node_count": 3
+        }
+      }
+    ]
+  }
+}

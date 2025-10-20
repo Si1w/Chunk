@@ -1,4 +1,3 @@
-import os
 import json
 import argparse
 import numpy as np
@@ -7,7 +6,6 @@ from pathlib import Path
 from datasets import load_dataset
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
-from mistralai import Mistral
 
 import logging
 
@@ -15,23 +13,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 class EmbeddingRetriever:
-    def __init__(self, model_name: str, device: str = "cuda", use_mistral: bool = False):
+    def __init__(self, model_name: str, device: str = "cuda"):
         self.device = device
         logger.info(f"Loading model {model_name} on {self.device}")
         self.model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
         logger.info("Model loaded successfully")
-
-        if use_mistral:
-            api_key = os.getenv("MISTRAL_API_KEY")
-            if not api_key:
-                raise ValueError("MISTRAL_API_KEY environment variable not set")
-            logger.info(f"Using Mistral API with model {model_name}")
-            self.client = Mistral(api_key=api_key)
-            self.model_name = model_name
-        else:
-            logger.info(f"Loading model {model_name} on {self.device}")
-            self.model = SentenceTransformer(model_name)
-            logger.info("Model loaded successfully")
 
     def retrieve(self, query: str, documents: list[str], top_k: int):
         """
@@ -46,7 +32,6 @@ class EmbeddingRetriever:
         Returns:
             list: List of tuples (index, score, document)
         """
-        # Encode query
         logger.info(f"Encoding query...")
         with torch.no_grad():
             query_embeddings = self.model.encode(query, prompt_name="query")
@@ -114,21 +99,21 @@ def prepare_documents(corpus):
 
     return documents, doc_metadata
 
-def run_retrieval_process(model_name: str, dataset, retriever, corpus_dir, output_dir, method, top_k):
+def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
     """
     Run retrieval for all instances with a single chunking method.
     """
     logger.info(f"\n{'='*60}")
     logger.info(f"Processing with {method} chunking method")
     logger.info(f"{'='*60}\n")
-
+    retrieved_docs = {}
     for instance in tqdm(dataset, desc=f"Retrieval with {method}"):
-        if instance["repo"] == "pvlib/pvlib-python":
+        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
             continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
 
-        corpus_path = Path(corpus_dir) / instance_id / f"corpus_{method}.json"
+        corpus_path = Path(corpus_dir) / f"{method}_corpus.json"
 
         if not corpus_path.exists():
             logger.warning(f"Corpus file not found for {instance_id} with {method}")
@@ -136,7 +121,7 @@ def run_retrieval_process(model_name: str, dataset, retriever, corpus_dir, outpu
 
         try:
             corpus = load_corpus(str(corpus_path))
-            documents, doc_metadata = prepare_documents(corpus)
+            documents, doc_metadata = prepare_documents(corpus[instance_id])
 
             if not documents:
                 logger.warning(f"No documents found for {instance_id} with {method}")
@@ -147,7 +132,6 @@ def run_retrieval_process(model_name: str, dataset, retriever, corpus_dir, outpu
             results = retriever.retrieve(problem_statement, documents, top_k)
 
             retrieval_results = {
-                "instance_id": instance_id,
                 "query": problem_statement,
                 "method": method,
                 "top_k": top_k,
@@ -165,22 +149,15 @@ def run_retrieval_process(model_name: str, dataset, retriever, corpus_dir, outpu
                     "metadata": metadata.get("metadata", {}),
                 }
                 retrieval_results["results"].append(result_entry)
-                    
-            model_name_safe = model_name.split("/")[-1]
-            output_folder = Path(output_dir) / instance_id / model_name_safe
-            output_folder.mkdir(parents=True, exist_ok=True)
-
-            output_path = output_folder / f"retrieval_{method}.json"
-            with open(str(output_path), 'w', encoding='utf-8') as f:
-                json.dump(retrieval_results, f, indent=2, ensure_ascii=False)
-
-            logger.info(f"Saved to {output_path}")
+            retrieved_docs[instance_id] = retrieval_results
 
         except Exception as e:
             logger.error(f"Failed to process {instance_id}: {e}")
             import traceback
             traceback.print_exc()
             continue
+
+    return retrieved_docs
 
 def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, output_dir: str, chunking_method: str, top_k: int, device: str):
     """
@@ -193,22 +170,28 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
     
     methods_to_process = []
     if chunking_method == "all":
-        # methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
-        methods_to_process = ["function", "hierarchical", "cAST"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
+        # methods_to_process = ["function", "hierarchical", "cAST"]
     else:
         methods_to_process = [chunking_method]
 
     for method in methods_to_process:
-        run_retrieval_process(
-            model_name=model,
+        retrieved_docs = run_retrieval_process(
             dataset=dataset,
             retriever=retriever,
             corpus_dir=corpus_dir,
-            output_dir=output_dir,
             method=method,
             top_k=top_k,
         )
+        model_name_safe = model.split("/")[-1]
+        output_folder = Path(output_dir) / model_name_safe
+        output_folder.mkdir(parents=True, exist_ok=True)
 
+        output_path = output_folder / f"{method}_retrieval.json"
+        with open(str(output_path), 'w', encoding='utf-8') as f:
+            json.dump(retrieved_docs, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Saved to {output_path}")
     logger.info("All retrieval completed successfully")
 
 def main():

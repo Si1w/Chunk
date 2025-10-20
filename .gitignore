@@ -2,6 +2,6 @@
 .vscode/
 repos/
 corpus/
+logs/
 __pycache__/
-*.json
 *.txt

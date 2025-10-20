@@ -26,3 +26,17 @@ python -m eval.swebench.chunkify_repos \
 --max_chunk_size <number of lines> \
 --overlap_lines <number of lines>
 ```
+
+## Generate Predictions
+
+Run the script `eval/swebench/generate_predictions.py` to generate predictions for the chunked repositories.
+
+## Evaluation Retrieval
+
+```bash
+python -m swebench.harness.run_evaluation \
+-d SWE-bench/SWE-bench_Lite \
+-s dev \
+-p ./eval/swebench/predictions/codestral/Qwen3-Embedding-0.6B/<method> \
+-id cast_dev
+```

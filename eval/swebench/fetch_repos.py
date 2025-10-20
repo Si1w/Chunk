@@ -33,7 +33,7 @@ def build_repo_rels(dataset="princeton-nlp/SWE-bench_Lite", split="dev", root_di
     dataset = load_dataset(dataset, split=split)
     
     for instance in tqdm(dataset, desc="Processing instances"):
-        if instance["repo"] == "pvlib/pvlib-python":
+        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
             continue
         repo = instance["repo"]
         instance_id = instance["instance_id"]

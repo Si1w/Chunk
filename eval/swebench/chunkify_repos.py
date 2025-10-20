@@ -55,13 +55,14 @@ def chunkify(repo_dir: str, base_commit: str, chunker):
         filenames = list_files(repo_dir, include_tests=False)
         for relative_path in filenames:
             filename = os.path.join(repo_dir, relative_path)
+            
             try:
                 with open(filename, 'r', encoding='utf-8') as f:
                     code = f.read()
                 
                 # Apply chunking for Python files
                 if filename.endswith('.py'):
-                    chunks = chunker.chunkify(code, repo_level_metadata={"filename": relative_path})
+                    chunks = chunker.chunkify(code, repo_level_metadata={"filepath": relative_path})
                     documents[relative_path] = chunks
                 else:
                     documents[relative_path] = code
@@ -85,6 +86,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
         methods_to_process = [chunking_method]
     
     for method in methods_to_process:
+        chunk = {}
         logger.info(f"\n{'='*60}")
         logger.info(f"Processing with {method} chunking method")
         logger.info(f"{'='*60}\n")
@@ -101,7 +103,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             raise ValueError(f"Unknown chunking method: {method}")
         
         for instance in tqdm(dataset, desc=f"Processing with {method}"):
-            if instance["repo"] == "pvlib/pvlib-python":
+            if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
                 continue
             repo = instance["repo"]
             base_commit = instance["base_commit"]
@@ -111,34 +113,27 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             if not repo_dir.exists():
                 logger.warning(f"Repository {repo} not found at {repo_dir}")
                 continue
-
-            chunker_name = chunker.name if hasattr(chunker, 'name') else "cAST"
             
             try:
                 logger.info(f"Processing {instance_id} at {base_commit[:8]}")
                 documents = chunkify(str(repo_dir), base_commit, chunker)
-                instance_folder = os.path.join(output_dir, instance_id)
-                os.makedirs(instance_folder, exist_ok=True)
+                os.makedirs(output_dir, exist_ok=True)
                 
                 corpus = {
-                    "instance_id": instance_id,
                     "repo": repo,
                     "base_commit": base_commit,
-                    "chunking_method": chunker_name,
                     "documents": documents
                 }
+                chunk[instance_id] = corpus
 
-                output_path = os.path.join(instance_folder, f"corpus_{method}.json")
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    json.dump(corpus, f, indent=2, ensure_ascii=False)
-                
-                logger.info(f"Saved corpus to {output_path}")
-                
             except Exception as e:
                 logger.error(f"Failed to process {instance_id}: {e}")
                 continue
         
-        logger.info(f"Successfully processed all instances with {method}")
+        output_file = Path(output_dir, f"{method}_corpus.json")
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(chunk, f, indent=2)
+        logger.info(f"Saved {method} chunked corpus to {output_file}")
 
 def main():
     parser = argparse.ArgumentParser(description="Chunkify repositories from SWE-bench Lite")
