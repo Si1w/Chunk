@@ -110,7 +110,7 @@ def llm_response(code_base: str, problem_statement: str) -> str:
     prompt = PROMPT_TEMPLATE.format(problem_statement=problem_statement, code_base=code_base)
     
     response = client.chat.complete(
-        model="codestral-latest",
+        model="devstral-medium-latest",
         messages=[
             {"role": "user", "content": prompt}
         ],
@@ -124,7 +124,7 @@ def llm_response(code_base: str, problem_statement: str) -> str:
 def format_prediction(instance_id: str,prediction: str):
     pred = {
         "instance_id": instance_id,
-        "model_name_or_path": "codestral-latest",
+        "model_name_or_path": "devstral-medium-latest",
         "model_patch": parse_patch(prediction)
     }
 

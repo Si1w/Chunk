@@ -2,6 +2,8 @@
 .vscode/
 repos/
 corpus/
+predictions/
+retrieval/
 logs/
 __pycache__/
 *.txt
