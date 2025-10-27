@@ -3,41 +3,107 @@
 
 import itertools
 import functools
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent.parent / "src"))
 
 from utils import Tools, FilePathBuilder, CONSTANTS
 from collections import defaultdict
+from methods import FunctionLevelChunk, HierarchicalChunk, SlidingWindowChunk
+from astchunk import ASTChunkBuilder
 
 class RepoWindowMaker:
-    def __init__(self, repo, window_size, slice_size):
+    def __init__(self, repo, window_size, slice_size, chunk_method='sliding'):
         self.repo = repo
         self.window_size = window_size
         self.slice_size = slice_size
         self.slice_step = 1 if window_size // slice_size == 0 else window_size // slice_size
         self.source_code_files = Tools.iterate_repository(repo)
+        self.chunk_method = chunk_method
+        
+        configs = {
+            'max_chunk_size': window_size,
+            'overlap_lines': slice_size,
+            'language': 'python',
+            'metadata_template': 'default'
+        }
+        
+        if chunk_method == 'sliding':
+            self.chunker = SlidingWindowChunk(**configs)
+        elif chunk_method == 'function':
+            self.chunker = FunctionLevelChunk(**configs)
+        elif chunk_method == 'hierarchical':
+            self.chunker = HierarchicalChunk(**configs)
+        elif chunk_method == 'cast':
+            self.chunker = ASTChunkBuilder(**configs)
+        else:
+            self.chunker = None
         
     def _buid_windows_for_a_file(self, fpath_tuple, code):
         code_windows = []
-        code_lines = code.splitlines()
-        delta_size = self.window_size // 2
-        for line_no in range(0, len(code_lines), self.slice_step): # line_no starts from 0
-            start_line_no = max(0, line_no - delta_size)
-            end_line_no = min(len(code_lines), line_no + self.window_size - delta_size)
-            window_lines = [i for i in code_lines[start_line_no:end_line_no]]
-            if not window_lines:  # all empty lines
-                continue
-            window_text = '\n'.join(window_lines)
-            code_windows.append({
-                'context': window_text,
-                'metadata': {
-                    'fpath_tuple': fpath_tuple,
-                    'line_no': line_no,
-                    'start_line_no': start_line_no,
-                    'end_line_no': end_line_no,
-                    'window_size': self.window_size,
-                    'repo': self.repo,
-                    'slice_size': self.slice_size,
-                }
-            })
+        
+        if self.chunker:
+            chunks = self.chunker.chunkify(code)
+            
+            if isinstance(chunks, list) and len(chunks) > 0:
+                if isinstance(chunks[0], dict):
+                    for idx, chunk in enumerate(chunks):
+                        context = chunk.get('context', chunk.get('code', ''))
+                        if not context.strip():
+                            continue
+                        code_windows.append({
+                            'context': context,
+                            'metadata': {
+                                'fpath_tuple': fpath_tuple,
+                                'line_no': idx,
+                                'start_line_no': 0,
+                                'end_line_no': len(context.splitlines()),
+                                'window_size': self.window_size,
+                                'repo': self.repo,
+                                'slice_size': self.slice_size,
+                                'chunk_method': self.chunk_method
+                            }
+                        })
+                else:
+                    for idx, chunk in enumerate(chunks):
+                        if not chunk.strip():
+                            continue
+                        code_windows.append({
+                            'context': chunk,
+                            'metadata': {
+                                'fpath_tuple': fpath_tuple,
+                                'line_no': idx,
+                                'start_line_no': 0,
+                                'end_line_no': len(chunk.splitlines()),
+                                'window_size': self.window_size,
+                                'repo': self.repo,
+                                'slice_size': self.slice_size,
+                                'chunk_method': self.chunk_method
+                            }
+                        })
+        else:
+            code_lines = code.splitlines()
+            delta_size = self.window_size // 2
+            for line_no in range(0, len(code_lines), self.slice_step):
+                start_line_no = max(0, line_no - delta_size)
+                end_line_no = min(len(code_lines), line_no + self.window_size - delta_size)
+                window_lines = [i for i in code_lines[start_line_no:end_line_no]]
+                if not window_lines:
+                    continue
+                window_text = '\n'.join(window_lines)
+                code_windows.append({
+                    'context': window_text,
+                    'metadata': {
+                        'fpath_tuple': fpath_tuple,
+                        'line_no': line_no,
+                        'start_line_no': start_line_no,
+                        'end_line_no': end_line_no,
+                        'window_size': self.window_size,
+                        'repo': self.repo,
+                        'slice_size': self.slice_size,
+                    }
+                })
         return code_windows
     
     def _merge_windows_with_same_context(self, code_windows):
@@ -59,7 +125,7 @@ class RepoWindowMaker:
         for fpath_tuple, code in self.source_code_files.items():
             all_code_windows += self._buid_windows_for_a_file(fpath_tuple, code)
         merged_code_windows = self._merge_windows_with_same_context(all_code_windows)
-        print(f'build {len(merged_code_windows)} windows for {self.repo} with window size {self.window_size} and slice {self.slice_size}')
+        print(f'build {len(merged_code_windows)} windows for {self.repo} with method {self.chunk_method}, window size {self.window_size} and slice {self.slice_size}')
         output_path = FilePathBuilder.repo_windows_path(self.repo, self.window_size, self.slice_size)
         Tools.dump_pickle(merged_code_windows, output_path)
 
@@ -189,10 +255,11 @@ class PredictionWindowMaker:
         Tools.dump_pickle(code_windows, output_path)
 
 class MakeWindowWrapper:
-    def __init__(self, benchmark, repos, window_sizes, slice_sizes):
+    def __init__(self, benchmark, repos, window_sizes, slice_sizes, chunk_methods=None):
         self.repos = repos
         self.window_sizes = window_sizes
         self.slice_sizes = slice_sizes
+        self.chunk_methods = chunk_methods if chunk_methods else ['sliding']
 
         self.benchmark = benchmark
 
@@ -207,9 +274,10 @@ class MakeWindowWrapper:
 
     def window_for_repo_files(self):
         for window_size, slice_size in itertools.product(self.window_sizes, self.slice_sizes):
-            for repo in self.repos:
-                repo_window_maker = RepoWindowMaker(repo, window_size, slice_size)
-                repo_window_maker.build_windows()
+            for chunk_method in self.chunk_methods:
+                for repo in self.repos:
+                    repo_window_maker = RepoWindowMaker(repo, window_size, slice_size, chunk_method)
+                    repo_window_maker.build_windows()
 
     def window_for_baseline_and_ground(self):
         tasks = Tools.load_jsonl(self.task_file_path)

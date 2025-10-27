@@ -5,26 +5,11 @@ import functools
 import os
 
 from utils import Tools, FilePathBuilder, CodexTokenizer, CodeGenTokenizer, CONSTANTS
-from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk
-from astchunk import ASTChunkBuilder
 
 class PromptBuilder:
-    def __init__(self, query_lines_with_retrieval_results, task_path, log_message, tokenizer, method, **configs):
+    def __init__(self, query_lines_with_retrieval_results, task_path, log_message, tokenizer):
         self.query_lines_with_retrieval_results = query_lines_with_retrieval_results
         self.log_message = log_message
-        self.method = method
-
-        if method == 'sliding_window':
-            self.chunker = SlidingWindowChunk(**configs)
-        elif method == 'function_level':
-            self.chunker = FunctionLevelChunk(**configs)
-        elif method == 'hierarchical':
-            self.chunker = HierarchicalChunk(**configs)
-        elif method == 'cAST':
-            self.chunker = ASTChunkBuilder(**configs)
-        else:
-            self.chunker = None
-
         if tokenizer == CodexTokenizer:
             self.tokenizer = CodexTokenizer()
             self.max_retrieval_length = 2000  # half of the max length of the model
@@ -44,34 +29,10 @@ class PromptBuilder:
         f_paths = ['/'.join(x['fpath_tuple'][1:]) for x in metadata]
         f_paths_str = '\n'.join([f'# {f_path}' for f_path in f_paths])
         f_path_comment = f'# the below code fragment can be found in:'
-        
-        # Apply chunking strategy if available
-        code_content = content['context']
-        if self.chunker:
-            chunks = self.chunker.chunkify(code_content)
-            if self.method == 'sliding_window':
-                code_content = '\n'.join(chunks)
-            elif self.method in ['function_level', 'hierarchical']:
-                chunk_codes = []
-                for chunk in chunks:
-                    if isinstance(chunk, dict):
-                        if 'content' in chunk:
-                            chunk_codes.append(chunk['content'])
-                        elif 'text' in chunk:
-                            chunk_codes.append(chunk['text'])
-                code_content = '\n'.join(chunk_codes) if chunk_codes else code_content
-            elif self.method == 'cAST':
-                chunk_codes = []
-                for chunk in chunks:
-                    if isinstance(chunk, dict):
-                        if 'content' in chunk:
-                            chunk_codes.append(chunk['content'])
-                        elif 'text' in chunk:
-                            chunk_codes.append(chunk['text'])
-                code_content = '\n'.join(chunk_codes) if chunk_codes else code_content
-        
-        content_lines = code_content.splitlines()
+        # put code lines in the comment
+        content_lines = content['context'].splitlines()
         content_lines_comment = [f'# {line}' for line in content_lines]
+        # aggregate the comment and the code lines
         
         block_str = '\n'.join([f_path_comment, f_paths_str, self.seperator] + content_lines_comment + [self.seperator]) + '\n'
         tokenized_block = self.tokenizer.tokenize(block_str)
@@ -152,7 +113,7 @@ class PromptBuilder:
         return new_prompt_lines
 
 class BuildPromptWrapper:
-    def __init__(self, vectorizer, benchmark, repos, window_size, slice_size, tokenizer, method=None, **configs):
+    def __init__(self, vectorizer, benchmark, repos, window_size, slice_size, tokenizer):
         if vectorizer == 'one-gram':
             self.vector_path_builder = FilePathBuilder.one_gram_vector_path
         elif vectorizer == 'ada002':
@@ -171,8 +132,6 @@ class BuildPromptWrapper:
             self.task_path = FilePathBuilder.short_random_line_completion_benchmark
         self.benchmark = benchmark
         self.tokenizer = tokenizer
-        self.method = method
-        self.configs = configs
     
     def _run(self, mode, query_window_path_builder, output_file_path):
         workers = []
@@ -185,14 +144,7 @@ class BuildPromptWrapper:
             
             query_lines_with_retrieval_results = Tools.load_pickle(retrieval_results)
             log_message = f'repo: {repo}, window: {self.window_size}, slice: {self.slice_size}'
-            worker = PromptBuilder(
-                query_lines_with_retrieval_results, 
-                self.task_path, 
-                log_message, 
-                self.tokenizer,
-                self.method,
-                **self.configs
-            )
+            worker = PromptBuilder(query_lines_with_retrieval_results, self.task_path, log_message, self.tokenizer)
             workers.append(worker)
         lines = []
         for worker in workers:
@@ -207,4 +159,3 @@ class BuildPromptWrapper:
     def build_prediction_prompt(self, mode, prediction_path, output_path):
         query_line_path_temp = functools.partial(FilePathBuilder.gen_first_window_path, self.benchmark, mode, prediction_path)
         self._run(mode, query_line_path_temp, output_path)
-
