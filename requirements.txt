@@ -2,3 +2,5 @@ astchunk
 datasets
 mistralai
 swebench
+editdistance==0.6.2
+vllm

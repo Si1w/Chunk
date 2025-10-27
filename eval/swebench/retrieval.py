@@ -36,15 +36,25 @@ class EmbeddingRetriever:
         with torch.no_grad():
             query_embeddings = self.model.encode(query, prompt_name="query")
             document_embeddings = self.model.encode(documents, batch_size=4, show_progress_bar=True)
-        similarity = self.model.similarity(query_embeddings, document_embeddings)
+        similarities = self.model.similarity(query_embeddings, document_embeddings)
 
-        # Get top-k results
-        similarity = similarity.cpu().numpy().ravel()
-        top_k_retrieval = min(top_k, len(documents))
-        top_k_indices = np.argsort(similarity)[-top_k_retrieval:][::-1]
+        # task = "Given a code search query, retrieve relevant code snippets that relate to the query"
+        # instructed_query = [self.get_detailed_instruct(task, query)]
+        # input_text = instructed_query + documents
+        # outputs = self.model.embed(input_text, batch_size=4)
+        # embeddings = torch.tensor([o.outputs.embedding for o in outputs])
+
+        # query_embd = embeddings[0].unsqueeze(0)
+        # doc_embds = embeddings[1:]
+
+        # similarities = torch.nn.functional.cosine_similarity(query_embd, doc_embds, dim=1)
+        top_k_indices = torch.topk(similarities, k=top_k).indices.tolist
+
         results = []
         for idx in top_k_indices:
-            results.append((idx, float(similarity[idx]), documents[idx]))
+            score = similarities[idx].item()
+            doc_text = documents[idx]
+            results.append((idx, score, doc_text))
         return results
 
 def load_corpus(corpus_path: str):
