@@ -134,8 +134,8 @@ def pred_generation(docs_dir: str, method: str, top_k: int):
     dataset = load_dataset("princeton-nlp/SWE-bench_Lite", split="dev")
     preds = {}
     for instance in tqdm(dataset, desc=f"Generating Predictions with {method}"):
-        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-            continue
+        # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+        #     continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
         docs_path = Path(docs_dir, f"{method}_retrieval.json")
@@ -181,7 +181,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=10,
                         help="Number of top retrieved documents to use as context")
     parser.add_argument("--docs-dir", type=str, default="./eval/swebench/retrieval",)
-    parser.add_argument("--output-dir", type=str, default="./eval/swebench/predictions/codestral",
+    parser.add_argument("--output-dir", type=str, default="./eval/swebench/predictions/devstral",
                         help="Directory to save predictions")
     args = parser.parse_args()
 

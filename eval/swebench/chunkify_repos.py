@@ -103,8 +103,8 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             raise ValueError(f"Unknown chunking method: {method}")
         
         for instance in tqdm(dataset, desc=f"Processing with {method}"):
-            if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-                continue
+            # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+            #     continue
             repo = instance["repo"]
             base_commit = instance["base_commit"]
             instance_id = instance["instance_id"]

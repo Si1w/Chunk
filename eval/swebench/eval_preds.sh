@@ -9,7 +9,7 @@ SPLIT="dev"
 
 METHODS=("sliding" "function" "hierarchical" "cAST")
 for METHOD in "${METHODS[@]}"; do
-    PREDICTIONS_DIR="./eval/swebench/predictions/codestral/Qwen3-Embedding-0.6B/${METHOD}_predictions.json"
+    PREDICTIONS_DIR="./eval/swebench/predictions/devstral/Qwen3-Embedding-0.6B/${METHOD}_predictions.json"
     python -m swebench.harness.run_evaluation \
         -d $DATASET \
         -s $SPLIT \
