@@ -143,11 +143,11 @@ def pred_generation(docs_dir: str, method: str, top_k: int):
         doc = docs[instance_id]
         code_base = ""
         for i in range(top_k):
-            code_base += doc["results"][i]["file_path"] + "\n"
+            code_base += "File path: " + doc["results"][i]["file_path"] + "\n"
             code_base += doc["results"][i]["content"] + "\n"
             metadata = doc["results"][i]["metadata"]
-            code_base += str(metadata.get("relationship", "")) + "\n" if metadata.get("relationship") else ""
-            code_base += str(metadata.get("parent_name", "")) + "\n" if metadata.get("parent_name") else ""
+            code_base += "Related functions: " + str(metadata.get("relationship", "")) + "\n" if metadata.get("relationship") else ""
+            code_base += "Class name: " + str(metadata.get("parent_name", "")) + "\n" if metadata.get("parent_name") else ""
         prediction = llm_response(code_base, problem_statement)
         preds[instance_id] = format_prediction(instance_id, prediction)
         time.sleep(5) # To avoid rate limiting, adjust as needed
@@ -160,7 +160,7 @@ def process_pred(method: str, model: str, top_k: int, docs_dir: str, output_dir:
     Path(output_path).mkdir(parents=True, exist_ok=True)
     
     if method == "all":
-        methods = ["sliding", "function", "hierarchical", "cAST"]
+        methods = ["sliding", "function", "hierarchical", "cAST", "natural_boundary", "all"]
     else:
         methods = [method]
     
@@ -175,7 +175,7 @@ def process_pred(method: str, model: str, top_k: int, docs_dir: str, output_dir:
 def main():
     parser = argparse.ArgumentParser(description="Generate Predictions using Mistral")
     parser.add_argument("--method", type=str, default="all",
-                        choices=["sliding", "function", "hierarchical", "cAST", "all"])
+                        choices=["sliding", "function", "hierarchical", "cAST", "natural_boundary", "all"])
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-Embedding-0.6B",
                         help="HuggingFace model id for embedding")
     parser.add_argument("--top-k", type=int, default=10,

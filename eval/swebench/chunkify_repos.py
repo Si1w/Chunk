@@ -6,7 +6,7 @@ from git import Repo
 from pathlib import Path
 from datasets import load_dataset
 from swebench.inference.make_datasets.utils import list_files
-from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk
+from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk, NaturalBoundaryChunk
 from tqdm import tqdm
 
 import logging
@@ -99,6 +99,8 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             chunker = HierarchicalChunk(**configs)
         elif method == "cAST":
             chunker = ASTChunkBuilder(**configs)
+        elif method == "natural_boundary":
+            chunker = NaturalBoundaryChunk(**configs)
         else:
             raise ValueError(f"Unknown chunking method: {method}")
         
@@ -141,7 +143,7 @@ def main():
     parser.add_argument("--split", type=str, default="dev", choices=["dev", "test"])
     parser.add_argument("--repos_dir", type=str, default="./eval/swebench/repos")
     parser.add_argument("--output_dir", type=str, default="./eval/swebench/corpus")
-    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "all"])
+    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "natural_boundary", "all"])
     parser.add_argument("--max_chunk_size", type=int, default=500)
     parser.add_argument("--language", type=str, default="python")
     parser.add_argument("--metadata_template", type=str, default="default")
