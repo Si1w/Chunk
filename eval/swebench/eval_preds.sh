@@ -1,9 +1,8 @@
 #!/bin/bash
 
-cd /home/steven/home/chunk
 set -e
 
-DATASET="SWE-bench/SWE-bench_Lite"
+DATASET="SWE-bench/SWE-bench_Verified"
 MODEL="devstral-small-latest"
 SPLIT="dev"
 
