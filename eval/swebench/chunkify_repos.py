@@ -81,7 +81,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural-boundary"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural"]
     else:
         methods_to_process = [chunking_method]
     
@@ -99,7 +99,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             chunker = HierarchicalChunk(**configs)
         elif method == "cAST":
             chunker = ASTChunkBuilder(**configs)
-        elif method == "natural-boundary":
+        elif method == "natural":
             chunker = NaturalBoundaryChunk(**configs)
         else:
             raise ValueError(f"Unknown chunking method: {method}")
@@ -143,7 +143,7 @@ def main():
     parser.add_argument("--split", type=str, default="dev", choices=["dev", "test"])
     parser.add_argument("--repos_dir", type=str, default="./eval/swebench/repos")
     parser.add_argument("--output_dir", type=str, default="./eval/swebench/corpus")
-    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "natural-boundary", "all"])
+    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--max_chunk_size", type=int, default=500)
     parser.add_argument("--language", type=str, default="python")
     parser.add_argument("--metadata_template", type=str, default="default")

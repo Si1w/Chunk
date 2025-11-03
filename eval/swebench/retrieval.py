@@ -181,7 +181,7 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural-boundary"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural"]
         # methods_to_process = ["function", "hierarchical", "cAST"]
     else:
         methods_to_process = [chunking_method]
@@ -213,7 +213,7 @@ def main():
     parser.add_argument("--corpus-dir", type=str, default="./eval/swebench/corpus")
     parser.add_argument("--output-dir", type=str, default="./eval/swebench/retrieval")
     parser.add_argument("--method", type=str, default="all",
-                        choices=["sliding", "function", "hierarchical", "cAST", "natural-boundary", "all"])
+                        choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-Embedding-0.6B",
                         help="HuggingFace model id for embedding")
     parser.add_argument("--top-k", type=int, default=10)

@@ -9,17 +9,12 @@ import tree_sitter_typescript as tstypescript
 from .utils import build_metadata, extract_function_name, to_code_window
 
 class NaturalBoundaryChunk:
-    """
-    A natural boundary chunker that extracts functions and classes from code.
-    
-    Uses tree-sitter parsers to identify and extract function and class definitions
-    based on the programming language syntax.
-    """
     
     def __init__(self, **configs):
         self.max_chunk_size: int = configs['max_chunk_size']
         self.language: str = configs['language']
         self.metadata_template: str = configs['metadata_template']
+        self.overlap_lines: int = configs['overlap_lines']
 
         if self.language == "python":
             self.parser = ts.Parser(ts.Language(tspython.language()))
@@ -37,32 +32,25 @@ class NaturalBoundaryChunk:
         return "NaturalBoundary"
 
     def chunkify(self, code: str, repo_level_metadata: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        """
-        Split code text into natural boundary chunks (functions and classes).
-        
-        Args:
-            code (str): The code text to be chunked
-            repo_level_metadata (Dict[str, Any]): Repository-level metadata
-            
-        Returns:
-            List[Dict[str, Any]]: List of chunk dictionaries with astchunk-compatible output format
-        """
         if repo_level_metadata is None:
             repo_level_metadata = {}
             
         tree = self.parser.parse(bytes(code, "utf8"))
         root_node = tree.root_node
 
-        def extract_boundaries_recursively(node):
-            """Recursively extract all function/method/class nodes from the AST tree."""
+        def extract_boundaries_recursively(node, parent_is_class=False):
             boundaries = []
             
-            if node.type in ['function_definition', 'method_declaration', 'function_declaration', 
-                           'class_definition', 'class_declaration']:
+            is_class = node.type in ['class_definition', 'class_declaration']
+            is_function = node.type in ['function_definition', 'method_declaration', 'function_declaration']
+            
+            if is_class:
+                boundaries.append(node)
+            elif is_function and not parent_is_class:
                 boundaries.append(node)
             
             for child in node.children:
-                boundaries.extend(extract_boundaries_recursively(child))
+                boundaries.extend(extract_boundaries_recursively(child, parent_is_class=is_class))
                 
             return boundaries
 
@@ -73,21 +61,53 @@ class NaturalBoundaryChunk:
             start_byte = node.start_byte
             end_byte = node.end_byte
             boundary_code = code[start_byte:end_byte]
+            line_count = len(boundary_code.splitlines())
+            boundary_name = extract_function_name(node)
+            start_line = node.start_point[0] + 1
             
-            if len(boundary_code.splitlines()) <= self.max_chunk_size:
-                boundary_name = extract_function_name(node)
+            if line_count <= self.max_chunk_size:
                 chunk_metadata = build_metadata(
                     metadata_template=self.metadata_template,
                     func_name=boundary_name,
                     node_type=node.type,
-                    start_line=node.start_point[0] + 1,
+                    start_line=start_line,
                     end_line=node.end_point[0] + 1,
-                    lines=len(boundary_code.splitlines()),
+                    lines=line_count,
                     max_chunk_size=self.max_chunk_size,
                     repo_level_metadata=repo_level_metadata
                 )
                 
                 chunk_dict = to_code_window(self.metadata_template, boundary_code, chunk_metadata)
                 chunks.append(chunk_dict)
+            else:
+                lines = boundary_code.splitlines(keepends=True)
+                chunk_index = 0
+                i = 0
+                
+                while i < len(lines):
+                    end_idx = min(i + self.max_chunk_size, len(lines))
+                    chunk_lines = lines[i:end_idx]
+                    chunk_code = ''.join(chunk_lines)
+                    
+                    chunk_metadata = build_metadata(
+                        metadata_template=self.metadata_template,
+                        func_name=f"{boundary_name} (part {chunk_index + 1})",
+                        node_type=node.type,
+                        start_line=start_line + i,
+                        end_line=start_line + end_idx - 1,
+                        lines=len(chunk_lines),
+                        max_chunk_size=self.max_chunk_size,
+                        repo_level_metadata=repo_level_metadata
+                    )
+                    
+                    chunk_dict = to_code_window(self.metadata_template, chunk_code, chunk_metadata)
+                    chunks.append(chunk_dict)
+                    
+                    if end_idx < len(lines):
+                        i += self.max_chunk_size - self.overlap_lines
+                    else:
+                        break
+                        
+                    chunk_index += 1
 
         return chunks
