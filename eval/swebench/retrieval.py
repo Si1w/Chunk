@@ -19,7 +19,7 @@ class EmbeddingRetriever:
         self.model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
         logger.info("Model loaded successfully")
 
-    def retrieve(self, query: str, documents: list[str], top_k: int):
+    def retrieve(self, query: str, documents: list[str], batch_size: int, top_k: int):
         """
         Retrieve top-k most relevant documents for the query.
         Process documents one by one to save memory.
@@ -35,16 +35,27 @@ class EmbeddingRetriever:
         logger.info(f"Encoding query...")
         with torch.no_grad():
             query_embeddings = self.model.encode(query, prompt_name="query")
-            document_embeddings = self.model.encode(documents, batch_size=4, show_progress_bar=True)
-        similarity = self.model.similarity(query_embeddings, document_embeddings)
+            document_embeddings = self.model.encode(documents, batch_size=batch_size, show_progress_bar=True)
+        similarities = self.model.similarity(query_embeddings, document_embeddings)
+        similarities = similarities.flatten()
+        # vllm embedding approach
+        # task = "Given a code search query, retrieve relevant code snippets that relate to the query"
+        # instructed_query = [self.get_detailed_instruct(task, query)]
+        # input_text = instructed_query + documents
+        # outputs = self.model.embed(input_text, batch_size=4)
+        # embeddings = torch.tensor([o.outputs.embedding for o in outputs])
 
-        # Get top-k results
-        similarity = similarity.cpu().numpy().ravel()
-        top_k_retrieval = min(top_k, len(documents))
-        top_k_indices = np.argsort(similarity)[-top_k_retrieval:][::-1]
+        # query_embd = embeddings[0].unsqueeze(0)
+        # doc_embds = embeddings[1:]
+
+        # similarities = torch.nn.functional.cosine_similarity(query_embd, doc_embds, dim=1)
+        top_k_indices = torch.topk(similarities, k=top_k).indices.tolist()
+
         results = []
         for idx in top_k_indices:
-            results.append((idx, float(similarity[idx]), documents[idx]))
+            score = similarities[idx].item()
+            doc_text = documents[idx]
+            results.append((idx, score, doc_text))
         return results
 
 def load_corpus(corpus_path: str):
@@ -99,7 +110,7 @@ def prepare_documents(corpus):
 
     return documents, doc_metadata
 
-def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
+def run_retrieval_process(dataset, retriever, corpus_dir, method, batch_size, top_k):
     """
     Run retrieval for all instances with a single chunking method.
     """
@@ -108,8 +119,8 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
     logger.info(f"{'='*60}\n")
     retrieved_docs = {}
     for instance in tqdm(dataset, desc=f"Retrieval with {method}"):
-        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-            continue
+        # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+        #     continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
 
@@ -129,7 +140,7 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
 
             logger.info(f"Retrieving for {instance_id} ({len(documents)} documents)")
 
-            results = retriever.retrieve(problem_statement, documents, top_k)
+            results = retriever.retrieve(problem_statement, documents, batch_size, top_k)
 
             retrieval_results = {
                 "query": problem_statement,
@@ -159,7 +170,7 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
 
     return retrieved_docs
 
-def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, output_dir: str, chunking_method: str, top_k: int, device: str):
+def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, output_dir: str, chunking_method: str, top_k: int, device: str, batch_size: int):
     """
     Run retrieval for all instances in the dataset.
     """
@@ -170,7 +181,7 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural"]
         # methods_to_process = ["function", "hierarchical", "cAST"]
     else:
         methods_to_process = [chunking_method]
@@ -181,6 +192,7 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
             retriever=retriever,
             corpus_dir=corpus_dir,
             method=method,
+            batch_size=batch_size,
             top_k=top_k,
         )
         model_name_safe = model.split("/")[-1]
@@ -201,12 +213,13 @@ def main():
     parser.add_argument("--corpus-dir", type=str, default="./eval/swebench/corpus")
     parser.add_argument("--output-dir", type=str, default="./eval/swebench/retrieval")
     parser.add_argument("--method", type=str, default="all",
-                        choices=["sliding", "function", "hierarchical", "cAST", "all"])
+                        choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-Embedding-0.6B",
                         help="HuggingFace model id for embedding")
     parser.add_argument("--top-k", type=int, default=10)
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
-    
+    parser.add_argument("--batch-size", type=int, default=16,
+                        help="Batch size for embedding documents")
     args = parser.parse_args()
     
     run_retrieval(
@@ -217,7 +230,8 @@ def main():
         output_dir=args.output_dir,
         chunking_method=args.method,
         top_k=args.top_k,
-        device=args.device
+        device=args.device,
+        batch_size=args.batch_size
     )
 
 if __name__ == "__main__":

@@ -33,8 +33,8 @@ def build_repo_rels(dataset="princeton-nlp/SWE-bench_Lite", split="dev", root_di
     dataset = load_dataset(dataset, split=split)
     
     for instance in tqdm(dataset, desc="Processing instances"):
-        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-            continue
+        # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+        #     continue
         repo = instance["repo"]
         instance_id = instance["instance_id"]
         
@@ -46,6 +46,7 @@ def build_repo_rels(dataset="princeton-nlp/SWE-bench_Lite", split="dev", root_di
 
 def main(): 
     parser = argparse.ArgumentParser(description="Build repo rels from datasets")
+    parser.add_argument("--dataset", type=str, default="princeton-nlp/SWE-bench_Lite")
     parser.add_argument("--split", type=str, default="dev", choices=["dev", "test"])
     parser.add_argument("--root_dir", type=str, default="./eval/swebench/repos")
     parser.add_argument("--token", type=str, default=None)
@@ -58,6 +59,7 @@ def main():
         logger.warning("No GitHub token provided. Rate limiting may occur.")
 
     build_repo_rels(
+        dataset=args.dataset,
         split=args.split,
         root_dir=args.root_dir,
         token=token

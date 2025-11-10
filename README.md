@@ -37,6 +37,6 @@ Run the script `eval/swebench/generate_predictions.py` to generate predictions f
 python -m swebench.harness.run_evaluation \
 -d SWE-bench/SWE-bench_Lite \
 -s dev \
--p ./eval/swebench/predictions/codestral/Qwen3-Embedding-0.6B/<method> \
+-p ./eval/swebench/predictions/codestral/Qwen3-Embedding-0.6B/cAST_predictions.json \
 -id cast_dev
 ```

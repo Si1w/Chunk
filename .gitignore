@@ -2,6 +2,9 @@
 .vscode/
 repos/
 corpus/
+predictions/
+retrieval/
 logs/
 __pycache__/
-*.txt
+*.json
+mistral_key.txt

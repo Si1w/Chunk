@@ -6,7 +6,7 @@ from git import Repo
 from pathlib import Path
 from datasets import load_dataset
 from swebench.inference.make_datasets.utils import list_files
-from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk
+from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk, NaturalBoundaryChunk
 from tqdm import tqdm
 
 import logging
@@ -81,7 +81,7 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural"]
     else:
         methods_to_process = [chunking_method]
     
@@ -99,12 +99,14 @@ def process_repos(dataset_name: str, split: str, repos_dir: str, output_dir: str
             chunker = HierarchicalChunk(**configs)
         elif method == "cAST":
             chunker = ASTChunkBuilder(**configs)
+        elif method == "natural":
+            chunker = NaturalBoundaryChunk(**configs)
         else:
             raise ValueError(f"Unknown chunking method: {method}")
         
         for instance in tqdm(dataset, desc=f"Processing with {method}"):
-            if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-                continue
+            # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+            #     continue
             repo = instance["repo"]
             base_commit = instance["base_commit"]
             instance_id = instance["instance_id"]
@@ -141,7 +143,7 @@ def main():
     parser.add_argument("--split", type=str, default="dev", choices=["dev", "test"])
     parser.add_argument("--repos_dir", type=str, default="./eval/swebench/repos")
     parser.add_argument("--output_dir", type=str, default="./eval/swebench/corpus")
-    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "all"])
+    parser.add_argument("--method", type=str, default="all", choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--max_chunk_size", type=int, default=500)
     parser.add_argument("--language", type=str, default="python")
     parser.add_argument("--metadata_template", type=str, default="default")

@@ -1,4 +1,4 @@
-from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk
+from src.methods import SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk, NaturalBoundaryChunk
 from tqdm import tqdm
 
 def main():
@@ -15,7 +15,7 @@ def main():
         "overlap_lines": 20
     }
 
-    for method in [SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk]:
+    for method in [SlidingWindowChunk, FunctionLevelChunk, HierarchicalChunk, NaturalBoundaryChunk]:
         chunker = method(**configs)
         chunks = chunker.chunkify(code)
     

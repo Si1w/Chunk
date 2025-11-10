@@ -110,7 +110,7 @@ def llm_response(code_base: str, problem_statement: str) -> str:
     prompt = PROMPT_TEMPLATE.format(problem_statement=problem_statement, code_base=code_base)
     
     response = client.chat.complete(
-        model="codestral-latest",
+        model="devstral-medium-latest",
         messages=[
             {"role": "user", "content": prompt}
         ],
@@ -124,7 +124,7 @@ def llm_response(code_base: str, problem_statement: str) -> str:
 def format_prediction(instance_id: str,prediction: str):
     pred = {
         "instance_id": instance_id,
-        "model_name_or_path": "codestral-latest",
+        "model_name_or_path": "devstral-medium-latest",
         "model_patch": parse_patch(prediction)
     }
 
@@ -134,8 +134,8 @@ def pred_generation(docs_dir: str, method: str, top_k: int):
     dataset = load_dataset("princeton-nlp/SWE-bench_Lite", split="dev")
     preds = {}
     for instance in tqdm(dataset, desc=f"Generating Predictions with {method}"):
-        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-            continue
+        # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
+        #     continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
         docs_path = Path(docs_dir, f"{method}_retrieval.json")
@@ -143,11 +143,11 @@ def pred_generation(docs_dir: str, method: str, top_k: int):
         doc = docs[instance_id]
         code_base = ""
         for i in range(top_k):
-            code_base += doc["results"][i]["file_path"] + "\n"
+            code_base += "File path: " + doc["results"][i]["file_path"] + "\n"
             code_base += doc["results"][i]["content"] + "\n"
             metadata = doc["results"][i]["metadata"]
-            code_base += str(metadata.get("relationship", "")) + "\n" if metadata.get("relationship") else ""
-            code_base += str(metadata.get("parent_name", "")) + "\n" if metadata.get("parent_name") else ""
+            code_base += "Related functions: " + str(metadata.get("relationship", "")) + "\n" if metadata.get("relationship") else ""
+            code_base += "Class name: " + str(metadata.get("parent_name", "")) + "\n" if metadata.get("parent_name") else ""
         prediction = llm_response(code_base, problem_statement)
         preds[instance_id] = format_prediction(instance_id, prediction)
         time.sleep(5) # To avoid rate limiting, adjust as needed
@@ -160,7 +160,7 @@ def process_pred(method: str, model: str, top_k: int, docs_dir: str, output_dir:
     Path(output_path).mkdir(parents=True, exist_ok=True)
     
     if method == "all":
-        methods = ["sliding", "function", "hierarchical", "cAST"]
+        methods = ["sliding", "function", "hierarchical", "cAST", "natural"]
     else:
         methods = [method]
     
@@ -175,13 +175,13 @@ def process_pred(method: str, model: str, top_k: int, docs_dir: str, output_dir:
 def main():
     parser = argparse.ArgumentParser(description="Generate Predictions using Mistral")
     parser.add_argument("--method", type=str, default="all",
-                        choices=["sliding", "function", "hierarchical", "cAST", "all"])
+                        choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-Embedding-0.6B",
                         help="HuggingFace model id for embedding")
     parser.add_argument("--top-k", type=int, default=10,
                         help="Number of top retrieved documents to use as context")
     parser.add_argument("--docs-dir", type=str, default="./eval/swebench/retrieval",)
-    parser.add_argument("--output-dir", type=str, default="./eval/swebench/predictions/codestral",
+    parser.add_argument("--output-dir", type=str, default="./eval/swebench/predictions/devstral",
                         help="Directory to save predictions")
     args = parser.parse_args()
 
