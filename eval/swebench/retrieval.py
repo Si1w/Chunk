@@ -119,8 +119,6 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, batch_size, to
     logger.info(f"{'='*60}\n")
     retrieved_docs = {}
     for instance in tqdm(dataset, desc=f"Retrieval with {method}"):
-        # if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-        #     continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
 

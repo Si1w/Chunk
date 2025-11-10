@@ -7,7 +7,6 @@ from mistralai import Mistral
 from pathlib import Path
 from datasets import load_dataset
 from tqdm import tqdm
-
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -24,10 +23,10 @@ class EmbeddingRetriever:
         self.model = "codestral-embed"
         logger.info("Model loaded successfully")
 
-    def retrieve(self, query: str, documents: list[str], top_k: int):
+    def retrieve(self, query: str, documents: list[str], top_k: int, batch_size: int = 16):
         """
         Retrieve top-k most relevant documents for the query.
-        Process documents one by one to save memory.
+        Process documents in batches to handle API token limits.
         
         Args:
             query (str): Query text
@@ -40,15 +39,35 @@ class EmbeddingRetriever:
         logger.info(f"Encoding query...")
         query_response = client.embeddings.create(
             model=self.model,
-            input = [query]
-        )
-        documents_response = client.embeddings.create(
-            model=self.model,
-            input = documents
+            inputs=[query]
         )
         query_embedding = np.array(query_response.data[0].embedding)
-        document_embeddings = np.array([item.embedding for item in documents_response.data])
+        all_embeddings = []
         
+        logger.info(f"Encoding {len(documents)} documents in batches of {batch_size}...")
+        for i in tqdm(range(0, len(documents), batch_size), desc="Encoding batches"):
+            batch = documents[i:i + batch_size]
+            try:
+                batch_response = client.embeddings.create(
+                    model=self.model,
+                    inputs=batch
+                )
+                batch_embeddings = [item.embedding for item in batch_response.data]
+                all_embeddings.extend(batch_embeddings)
+            except Exception as e:
+                logger.error(f"Failed to encode batch {i//batch_size}: {e}")
+                for doc in batch:
+                    try:
+                        doc_response = client.embeddings.create(
+                            model=self.model,
+                            inputs=[doc]
+                        )
+                        all_embeddings.append(doc_response.data[0].embedding)
+                    except Exception as doc_e:
+                        logger.error(f"Failed to encode document: {doc_e}")
+                        all_embeddings.append([0.0] * len(query_embedding))
+        
+        document_embeddings = np.array(all_embeddings)
         query_norm = np.linalg.norm(query_embedding)
         doc_norms = np.linalg.norm(document_embeddings, axis=1)
         
@@ -61,7 +80,6 @@ class EmbeddingRetriever:
             results.append((int(idx), float(similarity[idx]), documents[idx]))
         
         return results
-
 
 def load_corpus(corpus_path: str):
         """
@@ -115,7 +133,7 @@ def prepare_documents(corpus):
 
     return documents, doc_metadata
 
-def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
+def run_retrieval_process(dataset, retriever, corpus_dir, method, batch_size, top_k):
     """
     Run retrieval for all instances with a single chunking method.
     """
@@ -124,8 +142,6 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
     logger.info(f"{'='*60}\n")
     retrieved_docs = {}
     for instance in tqdm(dataset, desc=f"Retrieval with {method}"):
-        if instance["repo"] == "pvlib/pvlib-python" or instance["repo"] == "pydicom/pydicom":
-            continue
         instance_id = instance["instance_id"]
         problem_statement = instance["problem_statement"]
 
@@ -145,7 +161,7 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
 
             logger.info(f"Retrieving for {instance_id} ({len(documents)} documents)")
 
-            results = retriever.retrieve(problem_statement, documents, top_k)
+            results = retriever.retrieve(problem_statement, documents, batch_size, top_k)
 
             retrieval_results = {
                 "query": problem_statement,
@@ -175,7 +191,7 @@ def run_retrieval_process(dataset, retriever, corpus_dir, method, top_k):
 
     return retrieved_docs
 
-def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, output_dir: str, chunking_method: str, top_k: int, device: str):
+def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, output_dir: str, chunking_method: str, top_k: int, device: str, batch_size: int):
     """
     Run retrieval for all instances in the dataset.
     """
@@ -186,7 +202,7 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
     
     methods_to_process = []
     if chunking_method == "all":
-        methods_to_process = ["sliding", "function", "hierarchical", "cAST"]
+        methods_to_process = ["sliding", "function", "hierarchical", "cAST", "natural"]
         # methods_to_process = ["function", "hierarchical", "cAST"]
     else:
         methods_to_process = [chunking_method]
@@ -197,6 +213,7 @@ def run_retrieval(model: str, dataset_name: str, split: str, corpus_dir: str, ou
             retriever=retriever,
             corpus_dir=corpus_dir,
             method=method,
+            batch_size=batch_size,
             top_k=top_k,
         )
         model_name_safe = model.split("/")[-1]
@@ -217,12 +234,13 @@ def main():
     parser.add_argument("--corpus-dir", type=str, default="./eval/swebench/corpus")
     parser.add_argument("--output-dir", type=str, default="./eval/swebench/retrieval")
     parser.add_argument("--method", type=str, default="all",
-                        choices=["sliding", "function", "hierarchical", "cAST", "all"])
+                        choices=["sliding", "function", "hierarchical", "cAST", "natural", "all"])
     parser.add_argument("--model", type=str, default="Qwen/Qwen3-Embedding-0.6B",
                         help="HuggingFace model id for embedding")
     parser.add_argument("--top-k", type=int, default=10)
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
-    
+    parser.add_argument("--batch-size", type=int, default=16,
+                        help="Batch size for embedding documents")
     args = parser.parse_args()
     
     run_retrieval(
@@ -233,7 +251,8 @@ def main():
         output_dir=args.output_dir,
         chunking_method=args.method,
         top_k=args.top_k,
-        device=args.device
+        device=args.device,
+        batch_size=args.batch_size
     )
 
 if __name__ == "__main__":
