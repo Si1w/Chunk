@@ -2,6 +2,7 @@ import json
 import argparse
 import os
 import numpy as np
+import time
 from getpass import getpass
 from mistralai import Mistral
 from pathlib import Path
@@ -78,7 +79,7 @@ class EmbeddingRetriever:
         results = []
         for idx in top_k_indices:
             results.append((int(idx), float(similarity[idx]), documents[idx]))
-        
+        time.sleep(1)
         return results
 
 def load_corpus(corpus_path: str):

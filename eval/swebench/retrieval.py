@@ -16,7 +16,7 @@ class EmbeddingRetriever:
     def __init__(self, model_name: str, device: str = "cuda"):
         self.device = device
         logger.info(f"Loading model {model_name} on {self.device}")
-        self.model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+        self.model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device=self.device)
         logger.info("Model loaded successfully")
 
     def retrieve(self, query: str, documents: list[str], batch_size: int, top_k: int):
