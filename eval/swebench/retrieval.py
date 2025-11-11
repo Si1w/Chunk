@@ -33,30 +33,34 @@ class EmbeddingRetriever:
             list: List of tuples (index, score, document)
         """
         logger.info(f"Encoding query...")
-        with torch.no_grad():
+        with torch.inference_mode():
             query_embeddings = self.model.encode(query, prompt_name="query")
             document_embeddings = self.model.encode(documents, batch_size=batch_size, show_progress_bar=True)
-        similarities = self.model.similarity(query_embeddings, document_embeddings)
-        similarities = similarities.flatten()
-        # vllm embedding approach
-        # task = "Given a code search query, retrieve relevant code snippets that relate to the query"
-        # instructed_query = [self.get_detailed_instruct(task, query)]
-        # input_text = instructed_query + documents
-        # outputs = self.model.embed(input_text, batch_size=4)
-        # embeddings = torch.tensor([o.outputs.embedding for o in outputs])
+        try:
+            similarities = self.model.similarity(query_embeddings, document_embeddings)
+            similarities = similarities.flatten()
+            # vllm embedding approach
+            # task = "Given a code search query, retrieve relevant code snippets that relate to the query"
+            # instructed_query = [self.get_detailed_instruct(task, query)]
+            # input_text = instructed_query + documents
+            # outputs = self.model.embed(input_text, batch_size=4)
+            # embeddings = torch.tensor([o.outputs.embedding for o in outputs])
 
-        # query_embd = embeddings[0].unsqueeze(0)
-        # doc_embds = embeddings[1:]
+            # query_embd = embeddings[0].unsqueeze(0)
+            # doc_embds = embeddings[1:]
 
-        # similarities = torch.nn.functional.cosine_similarity(query_embd, doc_embds, dim=1)
-        top_k_indices = torch.topk(similarities, k=top_k).indices.tolist()
+            # similarities = torch.nn.functional.cosine_similarity(query_embd, doc_embds, dim=1)
+            top_k_indices = torch.topk(similarities, k=top_k).indices.tolist()
 
-        results = []
-        for idx in top_k_indices:
-            score = similarities[idx].item()
-            doc_text = documents[idx]
-            results.append((idx, score, doc_text))
-        return results
+            results = []
+            for idx in top_k_indices:
+                score = similarities[idx].item()
+                doc_text = documents[idx]
+                results.append((idx, score, doc_text))
+            return results
+        finally:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
 def load_corpus(corpus_path: str):
         """
