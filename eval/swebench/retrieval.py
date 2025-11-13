@@ -34,11 +34,17 @@ class EmbeddingRetriever:
         """
         logger.info(f"Encoding query...")
         with torch.inference_mode():
-            query_embeddings = self.model.encode(query, prompt_name="query")
-            document_embeddings = self.model.encode(documents, batch_size=batch_size, show_progress_bar=True)
-        try:
-            similarities = self.model.similarity(query_embeddings, document_embeddings)
-            similarities = similarities.flatten()
+            query_embeddings = self.model.encode(
+                query, 
+                prompt_name="query",
+                convert_to_tensor=False
+            )
+            document_embeddings = self.model.encode(
+                documents, 
+                batch_size=batch_size, 
+                show_progress_bar=True,
+                convert_to_tensor=False
+            )
             # vllm embedding approach
             # task = "Given a code search query, retrieve relevant code snippets that relate to the query"
             # instructed_query = [self.get_detailed_instruct(task, query)]
@@ -48,7 +54,8 @@ class EmbeddingRetriever:
 
             # query_embd = embeddings[0].unsqueeze(0)
             # doc_embds = embeddings[1:]
-
+        try:
+            similarities = self.similarity(query_embeddings, document_embeddings)
             # similarities = torch.nn.functional.cosine_similarity(query_embd, doc_embds, dim=1)
             top_k_indices = torch.topk(similarities, k=top_k).indices.tolist()
 
@@ -59,9 +66,24 @@ class EmbeddingRetriever:
                 results.append((idx, score, doc_text))
             return results
         finally:
+            del query_embeddings, document_embeddings, similarities
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
+    @classmethod
+    def similarity(cls, query_embd, doc_embds):
+        """
+        Compute cosine similarity between query embedding and document embeddings in CPU.
+        """
+        q = torch.as_tensor(query_embd, dtype=torch.float32).unsqueeze(0)
+        D = torch.as_tensor(doc_embds, dtype=torch.float32) 
+
+        q = torch.nn.functional.normalize(q, dim=1)
+        D = torch.nn.functional.normalize(D, dim=1)
+
+        similarities = (q @ D.T).squeeze(0)
+        return similarities
+        
 def load_corpus(corpus_path: str):
         """
         Load corpus from JSON file.
